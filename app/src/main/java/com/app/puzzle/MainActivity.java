@@ -74,6 +74,14 @@ public class MainActivity extends AppCompatActivity {
         return tile.getText().toString().isEmpty() && tile.getForeground() == null;
     }
 
+    private boolean isAdjacent(int fromIndex, int toIndex) {
+        int fromRow = fromIndex / 3;
+        int fromCol = fromIndex % 3;
+        int toRow = toIndex / 3;
+        int toCol = toIndex % 3;
+        return Math.abs(fromRow - toRow) + Math.abs(fromCol - toCol) == 1;
+    }
+
     private final ActivityResultLauncher<String> imagePicker =
             registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                 if (uri != null) {
