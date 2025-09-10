@@ -102,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
     private void setImagePuzzle(Bitmap bitmap) {
         GridLayout grid = findViewById(R.id.puzzleGrid);
         ImageView reference = findViewById(R.id.referenceImage);
+        Button remove = findViewById(R.id.btnRemoveImage);
         reference.setImageBitmap(bitmap);
 
         int pieceWidth = bitmap.getWidth() / 3;
@@ -129,6 +130,34 @@ public class MainActivity extends AppCompatActivity {
         reference.animate().alpha(1f).translationY(0f).setDuration(300).start();
         grid.setTranslationY(-20f);
         grid.animate().translationY(0f).setDuration(300).start();
+        remove.setVisibility(View.VISIBLE);
+        remove.setAlpha(0f);
+        remove.setTranslationY(20f);
+        remove.animate().alpha(1f).translationY(0f).setDuration(300).start();
+    }
+
+    private void setLetterPuzzle() {
+        GridLayout grid = findViewById(R.id.puzzleGrid);
+        List<String> letters = Arrays.asList("A", "B", "C", "D", "E", "F", "G", "H", "");
+        Collections.shuffle(letters);
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            TextView tile = (TextView) grid.getChildAt(i);
+            tile.setText(letters.get(i));
+            tile.setForeground(null);
+        }
+    }
+
+    private void clearImagePuzzle() {
+        ImageView reference = findViewById(R.id.referenceImage);
+        Button remove = findViewById(R.id.btnRemoveImage);
+        GridLayout grid = findViewById(R.id.puzzleGrid);
+        ViewGroup root = findViewById(R.id.main);
+        TransitionManager.beginDelayedTransition(root, new AutoTransition().setDuration(300));
+        reference.setVisibility(View.GONE);
+        remove.setVisibility(View.GONE);
+        grid.setTranslationY(20f);
+        grid.animate().translationY(0f).setDuration(300).start();
+        setLetterPuzzle();
     }
 
     @Override
@@ -143,11 +172,9 @@ public class MainActivity extends AppCompatActivity {
         });
 
         GridLayout grid = findViewById(R.id.puzzleGrid);
-        List<String> letters = Arrays.asList("A", "B", "C", "D", "E", "F", "G", "H", "");
-        Collections.shuffle(letters);
+        setLetterPuzzle();
         for (int i = 0; i < grid.getChildCount(); i++) {
             TextView tile = (TextView) grid.getChildAt(i);
-            tile.setText(letters.get(i));
             tile.setTag(i);
             tile.setOnTouchListener(touchListener);
             tile.setOnDragListener(dragListener);
@@ -155,5 +182,7 @@ public class MainActivity extends AppCompatActivity {
 
         Button btn = findViewById(R.id.btnImage);
         btn.setOnClickListener(v -> imagePicker.launch("image/*"));
+        Button remove = findViewById(R.id.btnRemoveImage);
+        remove.setOnClickListener(v -> clearImagePuzzle());
     }
 }

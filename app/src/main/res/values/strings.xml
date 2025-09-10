@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">puzzle</string>
     <string name="select_image">Agregar imagen</string>
+    <string name="remove_image">Quitar imagen</string>
 </resources>
