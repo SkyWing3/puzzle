@@ -7,13 +7,26 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <ImageView
+        android:id="@+id/referenceImage"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:adjustViewBounds="true"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <GridLayout
         android:id="@+id/puzzleGrid"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:rowCount="3"
         android:columnCount="3"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/referenceImage"
+        android:layout_marginTop="16dp"
+        app:layout_goneMarginTop="0dp"
         app:layout_constraintBottom_toTopOf="@+id/btnImage"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">

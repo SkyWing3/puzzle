@@ -10,7 +10,9 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.GridLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
+import android.view.ViewGroup;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -26,6 +28,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import androidx.transition.AutoTransition;
+import androidx.transition.TransitionManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -96,6 +101,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void setImagePuzzle(Bitmap bitmap) {
         GridLayout grid = findViewById(R.id.puzzleGrid);
+        ImageView reference = findViewById(R.id.referenceImage);
+        reference.setImageBitmap(bitmap);
+
         int pieceWidth = bitmap.getWidth() / 3;
         int pieceHeight = bitmap.getHeight() / 3;
         List<Drawable> pieces = new ArrayList<>();
@@ -112,6 +120,15 @@ public class MainActivity extends AppCompatActivity {
             tile.setForeground(pieces.get(i));
             tile.setText("");
         }
+
+        reference.setAlpha(0f);
+        reference.setTranslationY(-30f);
+        ViewGroup root = findViewById(R.id.main);
+        TransitionManager.beginDelayedTransition(root, new AutoTransition().setDuration(300));
+        reference.setVisibility(View.VISIBLE);
+        reference.animate().alpha(1f).translationY(0f).setDuration(300).start();
+        grid.setTranslationY(-20f);
+        grid.animate().translationY(0f).setDuration(300).start();
     }
 
     @Override
