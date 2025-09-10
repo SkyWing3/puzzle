@@ -1,18 +1,28 @@
 package com.app.puzzle;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.DragEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -23,10 +33,14 @@ public class MainActivity extends AppCompatActivity {
         if (event.getAction() != MotionEvent.ACTION_DOWN) return false;
         if (!(v instanceof TextView)) return false;
         TextView tv = (TextView) v;
-        if (tv.getText().toString().isEmpty()) return false;
-        View.DragShadowBuilder shadow = new View.DragShadowBuilder(v);
-        v.startDragAndDrop(null, shadow, v, 0);
-        return true;
+        if (!isTileEmpty(tv)) {
+            v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100)
+                    .withEndAction(() -> v.animate().scaleX(1f).scaleY(1f).setDuration(100));
+            View.DragShadowBuilder shadow = new View.DragShadowBuilder(v);
+            v.startDragAndDrop(null, shadow, v, 0);
+            return true;
+        }
+        return false;
     };
 
     private final View.OnDragListener dragListener = (v, event) -> {
@@ -39,12 +53,16 @@ public class MainActivity extends AppCompatActivity {
                 if (!(source instanceof TextView) || !(v instanceof TextView)) return false;
                 TextView from = (TextView) source;
                 TextView to = (TextView) v;
-                if (!to.getText().toString().isEmpty()) return false;
+                if (!isTileEmpty(to)) return false;
                 int fromIndex = (int) from.getTag();
                 int toIndex = (int) to.getTag();
                 if (isAdjacent(fromIndex, toIndex)) {
                     to.setText(from.getText());
+                    to.setForeground(from.getForeground());
                     from.setText("");
+                    from.setForeground(null);
+                    to.animate().scaleX(1.05f).scaleY(1.05f).setDuration(150)
+                            .withEndAction(() -> to.animate().scaleX(1f).scaleY(1f).setDuration(150));
                 }
                 return true;
             default:
@@ -52,10 +70,40 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private boolean isAdjacent(int a, int b) {
-        int ar = a / 3, ac = a % 3;
-        int br = b / 3, bc = b % 3;
-        return Math.abs(ar - br) + Math.abs(ac - bc) == 1;
+    private boolean isTileEmpty(TextView tile) {
+        return tile.getText().toString().isEmpty() && tile.getForeground() == null;
+    }
+
+    private final ActivityResultLauncher<String> imagePicker =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null) {
+                    try (InputStream input = getContentResolver().openInputStream(uri)) {
+                        Bitmap bitmap = BitmapFactory.decodeStream(input);
+                        setImagePuzzle(bitmap);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+    private void setImagePuzzle(Bitmap bitmap) {
+        GridLayout grid = findViewById(R.id.puzzleGrid);
+        int pieceWidth = bitmap.getWidth() / 3;
+        int pieceHeight = bitmap.getHeight() / 3;
+        List<Drawable> pieces = new ArrayList<>();
+        for (int r = 0; r < 3; r++) {
+            for (int c = 0; c < 3; c++) {
+                Bitmap piece = Bitmap.createBitmap(bitmap, c * pieceWidth, r * pieceHeight, pieceWidth, pieceHeight);
+                pieces.add(new BitmapDrawable(getResources(), piece));
+            }
+        }
+        pieces.set(pieces.size() - 1, null);
+        Collections.shuffle(pieces);
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            TextView tile = (TextView) grid.getChildAt(i);
+            tile.setForeground(pieces.get(i));
+            tile.setText("");
+        }
     }
 
     @Override
@@ -70,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         GridLayout grid = findViewById(R.id.puzzleGrid);
-        List<String> letters = Arrays.asList("A","B","C","D","E","F","G","H","");
+        List<String> letters = Arrays.asList("A", "B", "C", "D", "E", "F", "G", "H", "");
         Collections.shuffle(letters);
         for (int i = 0; i < grid.getChildCount(); i++) {
             TextView tile = (TextView) grid.getChildAt(i);
@@ -79,5 +127,8 @@ public class MainActivity extends AppCompatActivity {
             tile.setOnTouchListener(touchListener);
             tile.setOnDragListener(dragListener);
         }
+
+        Button btn = findViewById(R.id.btnImage);
+        btn.setOnClickListener(v -> imagePicker.launch("image/*"));
     }
 }
