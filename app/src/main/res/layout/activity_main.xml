@@ -9,9 +9,11 @@
 
     <ImageView
         android:id="@+id/referenceImage"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_marginTop="16dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxWidth="80dp"
+        android:maxHeight="80dp"
+        android:layout_marginTop="8dp"
         android:adjustViewBounds="true"
         android:scaleType="centerCrop"
         android:visibility="gone"
@@ -85,6 +87,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:gravity="center"
         android:layout_marginBottom="24dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -106,8 +109,7 @@
             android:layout_height="wrap_content"
             android:text="@string/select_image"
             android:textColor="@android:color/white"
-            android:backgroundTint="@color/addButton"
-            android:layout_marginStart="8dp" />
+            android:backgroundTint="@color/addButton" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

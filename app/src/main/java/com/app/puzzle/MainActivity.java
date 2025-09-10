@@ -104,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
         GridLayout grid = findViewById(R.id.puzzleGrid);
         ImageView reference = findViewById(R.id.referenceImage);
         Button remove = findViewById(R.id.btnRemoveImage);
-        ViewGroup buttons = findViewById(R.id.buttonContainer);
+        Button add = findViewById(R.id.btnImage);
         reference.setImageBitmap(bitmap);
 
         int pieceWidth = bitmap.getWidth() / 3;
@@ -131,11 +131,15 @@ public class MainActivity extends AppCompatActivity {
         TransitionManager.beginDelayedTransition(root, rootTrans);
         reference.setVisibility(View.VISIBLE);
 
-        AutoTransition btnTrans = new AutoTransition();
-        btnTrans.setDuration(300);
-        btnTrans.setInterpolator(new AccelerateDecelerateInterpolator());
-        TransitionManager.beginDelayedTransition(buttons, btnTrans);
         remove.setVisibility(View.VISIBLE);
+        remove.setAlpha(0f);
+        remove.post(() -> {
+            remove.setTranslationX(-remove.getWidth());
+            remove.animate().alpha(1f).translationX(0).setDuration(300)
+                    .setInterpolator(new AccelerateDecelerateInterpolator());
+            add.animate().translationX(remove.getWidth() + dpToPx(8)).setDuration(300)
+                    .setInterpolator(new AccelerateDecelerateInterpolator());
+        });
     }
 
     private void setLetterPuzzle() {
@@ -152,8 +156,8 @@ public class MainActivity extends AppCompatActivity {
     private void clearImagePuzzle() {
         ImageView reference = findViewById(R.id.referenceImage);
         Button remove = findViewById(R.id.btnRemoveImage);
+        Button add = findViewById(R.id.btnImage);
         ViewGroup root = findViewById(R.id.main);
-        ViewGroup buttons = findViewById(R.id.buttonContainer);
 
         AutoTransition rootTrans = new AutoTransition();
         rootTrans.setDuration(300);
@@ -161,13 +165,17 @@ public class MainActivity extends AppCompatActivity {
         TransitionManager.beginDelayedTransition(root, rootTrans);
         reference.setVisibility(View.GONE);
 
-        AutoTransition btnTrans = new AutoTransition();
-        btnTrans.setDuration(300);
-        btnTrans.setInterpolator(new AccelerateDecelerateInterpolator());
-        TransitionManager.beginDelayedTransition(buttons, btnTrans);
-        remove.setVisibility(View.GONE);
+        add.animate().translationX(0).setDuration(300)
+                .setInterpolator(new AccelerateDecelerateInterpolator());
+        remove.animate().alpha(0f).translationX(-remove.getWidth()).setDuration(300)
+                .setInterpolator(new AccelerateDecelerateInterpolator())
+                .withEndAction(() -> remove.setVisibility(View.GONE));
 
         setLetterPuzzle();
+    }
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
     }
 
     @Override
