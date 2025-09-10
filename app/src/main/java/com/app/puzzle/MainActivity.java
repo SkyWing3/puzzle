@@ -13,6 +13,7 @@ import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -103,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
         GridLayout grid = findViewById(R.id.puzzleGrid);
         ImageView reference = findViewById(R.id.referenceImage);
         Button remove = findViewById(R.id.btnRemoveImage);
-        Button add = findViewById(R.id.btnImage);
+        ViewGroup buttons = findViewById(R.id.buttonContainer);
         reference.setImageBitmap(bitmap);
 
         int pieceWidth = bitmap.getWidth() / 3;
@@ -123,20 +124,18 @@ public class MainActivity extends AppCompatActivity {
             tile.setText("");
         }
 
-        reference.setAlpha(0f);
-        reference.setTranslationY(-30f);
         ViewGroup root = findViewById(R.id.main);
-        TransitionManager.beginDelayedTransition(root, new AutoTransition().setDuration(300));
+        AutoTransition rootTrans = new AutoTransition();
+        rootTrans.setDuration(300);
+        rootTrans.setInterpolator(new AccelerateDecelerateInterpolator());
+        TransitionManager.beginDelayedTransition(root, rootTrans);
         reference.setVisibility(View.VISIBLE);
-        reference.animate().alpha(1f).translationY(0f).setDuration(300).start();
-        grid.setTranslationY(-20f);
-        grid.animate().translationY(0f).setDuration(300).start();
+
+        AutoTransition btnTrans = new AutoTransition();
+        btnTrans.setDuration(300);
+        btnTrans.setInterpolator(new AccelerateDecelerateInterpolator());
+        TransitionManager.beginDelayedTransition(buttons, btnTrans);
         remove.setVisibility(View.VISIBLE);
-        remove.setAlpha(0f);
-        remove.setTranslationY(20f);
-        remove.setTranslationX(-60f);
-        remove.animate().alpha(1f).translationY(0f).translationX(0f).setDuration(300).start();
-        add.animate().translationX(60f).setDuration(300).start();
     }
 
     private void setLetterPuzzle() {
@@ -153,17 +152,21 @@ public class MainActivity extends AppCompatActivity {
     private void clearImagePuzzle() {
         ImageView reference = findViewById(R.id.referenceImage);
         Button remove = findViewById(R.id.btnRemoveImage);
-        Button add = findViewById(R.id.btnImage);
-        GridLayout grid = findViewById(R.id.puzzleGrid);
         ViewGroup root = findViewById(R.id.main);
-        TransitionManager.beginDelayedTransition(root, new AutoTransition().setDuration(300));
+        ViewGroup buttons = findViewById(R.id.buttonContainer);
+
+        AutoTransition rootTrans = new AutoTransition();
+        rootTrans.setDuration(300);
+        rootTrans.setInterpolator(new AccelerateDecelerateInterpolator());
+        TransitionManager.beginDelayedTransition(root, rootTrans);
         reference.setVisibility(View.GONE);
-        remove.animate().alpha(0f).translationX(-60f).setDuration(300).withEndAction(() -> {
-            remove.setVisibility(View.GONE);
-        }).start();
-        add.animate().translationX(0f).setDuration(300).start();
-        grid.setTranslationY(20f);
-        grid.animate().translationY(0f).setDuration(300).start();
+
+        AutoTransition btnTrans = new AutoTransition();
+        btnTrans.setDuration(300);
+        btnTrans.setInterpolator(new AccelerateDecelerateInterpolator());
+        TransitionManager.beginDelayedTransition(buttons, btnTrans);
+        remove.setVisibility(View.GONE);
+
         setLetterPuzzle();
     }
 
