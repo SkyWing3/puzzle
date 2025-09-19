@@ -285,27 +285,29 @@ public class MainActivity extends AppCompatActivity {
 
         float dx = blankTile.getX() - targetTile.getX();
         float dy = blankTile.getY() - targetTile.getY();
-        targetTile.bringToFront();
-        targetTile.animate()
+        final TextView finalTargetTile = targetTile;
+        final TextView finalBlankTile = blankTile;
+        finalTargetTile.bringToFront();
+        finalTargetTile.animate()
                 .translationX(dx)
                 .translationY(dy)
                 .setDuration(320)
                 .setInterpolator(new AccelerateDecelerateInterpolator())
                 .withEndAction(() -> {
-                    targetTile.setTranslationX(0f);
-                    targetTile.setTranslationY(0f);
-                    transferTileContent(targetTile, blankTile);
+                    finalTargetTile.setTranslationX(0f);
+                    finalTargetTile.setTranslationY(0f);
+                    transferTileContent(finalTargetTile, finalBlankTile);
                     if (isLast) {
                         finishAutoSolving();
                     }
                 })
                 .start();
-        blankTile.animate()
+        finalBlankTile.animate()
                 .scaleX(0.95f)
                 .scaleY(0.95f)
                 .setDuration(160)
                 .setInterpolator(new AccelerateDecelerateInterpolator())
-                .withEndAction(() -> blankTile.animate()
+                .withEndAction(() -> finalBlankTile.animate()
                         .scaleX(1f)
                         .scaleY(1f)
                         .setDuration(160)
