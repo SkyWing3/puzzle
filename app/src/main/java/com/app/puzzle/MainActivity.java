@@ -35,14 +35,13 @@ import androidx.core.view.WindowInsetsCompat;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
+import java.util.PriorityQueue;
 import java.util.Set;
 
 import androidx.transition.AutoTransition;
@@ -458,6 +457,29 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private static class SearchNode implements Comparable<SearchNode> {
+        final String key;
+        final int blankIndex;
+        final int gScore;
+        final int fScore;
+
+        SearchNode(String key, int blankIndex, int gScore, int fScore) {
+            this.key = key;
+            this.blankIndex = blankIndex;
+            this.gScore = gScore;
+            this.fScore = fScore;
+        }
+
+        @Override
+        public int compareTo(SearchNode other) {
+            int cmp = Integer.compare(this.fScore, other.fScore);
+            if (cmp != 0) {
+                return cmp;
+            }
+            return Integer.compare(this.gScore, other.gScore);
+        }
+    }
+
     private static class StateStep {
         final String parentKey;
         final char movedTile;
@@ -550,34 +572,66 @@ public class MainActivity extends AppCompatActivity {
             return new ArrayList<>();
         }
 
-        Queue<String> queue = new ArrayDeque<>();
+        PriorityQueue<SearchNode> openSet = new PriorityQueue<>();
+        Map<String, Integer> gScores = new HashMap<>();
         Map<String, StateStep> cameFrom = new HashMap<>();
-        Set<String> visited = new HashSet<>();
+        Set<String> closedSet = new HashSet<>();
 
-        queue.add(startKey);
-        visited.add(startKey);
+        int blankIndex = startKey.indexOf(charForValue(BLANK_INDEX));
+        int heuristic = manhattanDistance(startKey);
+        openSet.add(new SearchNode(startKey, blankIndex, 0, heuristic));
+        gScores.put(startKey, 0);
 
-        while (!queue.isEmpty()) {
-            String current = queue.poll();
-            if (current.equals(goalKey)) {
-                return reconstructMoves(cameFrom, current);
+        while (!openSet.isEmpty()) {
+            SearchNode current = openSet.poll();
+            if (closedSet.contains(current.key)) {
+                continue;
             }
-            int blankPosition = current.indexOf(charForValue(BLANK_INDEX));
-            for (int neighbor : adjacentPositions(blankPosition)) {
-                char[] next = current.toCharArray();
-                char moved = next[neighbor];
-                next[blankPosition] = moved;
-                next[neighbor] = charForValue(BLANK_INDEX);
-                String nextKey = new String(next);
-                if (visited.contains(nextKey)) {
+            if (current.key.equals(goalKey)) {
+                return reconstructMoves(cameFrom, current.key);
+            }
+            closedSet.add(current.key);
+
+            for (int neighbor : adjacentPositions(current.blankIndex)) {
+                char[] nextChars = current.key.toCharArray();
+                char movedTile = nextChars[neighbor];
+                nextChars[current.blankIndex] = movedTile;
+                nextChars[neighbor] = charForValue(BLANK_INDEX);
+                String nextKey = new String(nextChars);
+
+                if (closedSet.contains(nextKey)) {
                     continue;
                 }
-                visited.add(nextKey);
-                cameFrom.put(nextKey, new StateStep(current, moved));
-                queue.add(nextKey);
+
+                int tentativeG = current.gScore + 1;
+                Integer existingScore = gScores.get(nextKey);
+                if (existingScore != null && tentativeG >= existingScore) {
+                    continue;
+                }
+
+                gScores.put(nextKey, tentativeG);
+                cameFrom.put(nextKey, new StateStep(current.key, movedTile));
+                int nextHeuristic = manhattanDistance(nextKey);
+                openSet.add(new SearchNode(nextKey, neighbor, tentativeG, tentativeG + nextHeuristic));
             }
         }
         return null;
+    }
+
+    private int manhattanDistance(String key) {
+        int distance = 0;
+        for (int i = 0; i < key.length(); i++) {
+            int value = valueFromChar(key.charAt(i));
+            if (value == BLANK_INDEX) {
+                continue;
+            }
+            int targetRow = value / GRID_DIMENSION;
+            int targetCol = value % GRID_DIMENSION;
+            int currentRow = i / GRID_DIMENSION;
+            int currentCol = i % GRID_DIMENSION;
+            distance += Math.abs(targetRow - currentRow) + Math.abs(targetCol - currentCol);
+        }
+        return distance;
     }
 
     private List<Integer> reconstructMoves(Map<String, StateStep> cameFrom, String goalKey) {
