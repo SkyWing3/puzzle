@@ -7,8 +7,9 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -22,6 +23,7 @@ import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -33,9 +35,15 @@ import androidx.core.view.WindowInsetsCompat;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 
 import androidx.transition.AutoTransition;
 import androidx.transition.TransitionManager;
@@ -48,6 +56,9 @@ public class MainActivity extends AppCompatActivity {
     private ScoreDatabaseHelper databaseHelper;
     private int moveCount = 0;
     private boolean puzzleSolved = false;
+    private boolean autoSolving = false;
+
+    private final Handler autoSolveHandler = new Handler(Looper.getMainLooper());
 
     private final View.OnTouchListener touchListener = (v, event) -> {
         if (event.getAction() != MotionEvent.ACTION_DOWN) return false;
@@ -134,7 +145,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-        Collections.shuffle(pieces);
+        do {
+            Collections.shuffle(pieces);
+        } while (!isSolvablePieces(pieces));
         for (int i = 0; i < grid.getChildCount(); i++) {
             TextView tile = (TextView) grid.getChildAt(i);
             PuzzlePiece piece = pieces.get(i);
@@ -168,7 +181,9 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < GRID_DIMENSION * GRID_DIMENSION; i++) {
             order.add(i);
         }
-        Collections.shuffle(order);
+        do {
+            Collections.shuffle(order);
+        } while (!isSolvable(order));
         for (int i = 0; i < grid.getChildCount(); i++) {
             TextView tile = (TextView) grid.getChildAt(i);
             int contentIndex = order.get(i);
@@ -203,6 +218,109 @@ public class MainActivity extends AppCompatActivity {
         setLetterPuzzle();
     }
 
+    private void autoSolvePuzzle() {
+        if (autoSolving) {
+            return;
+        }
+        int[] currentState = getCurrentState();
+        if (isSolvedState(currentState)) {
+            Toast.makeText(this, R.string.already_solved, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!isSolvable(currentState)) {
+            Toast.makeText(this, R.string.unsolvable_puzzle, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        autoSolving = true;
+        autoSolveHandler.removeCallbacksAndMessages(null);
+        setTileInteractivity(false);
+        setControlsEnabled(false);
+
+        new Thread(() -> {
+            List<Integer> solution = findSolutionPath(currentState);
+            runOnUiThread(() -> {
+                if (solution == null || solution.isEmpty()) {
+                    autoSolving = false;
+                    setTileInteractivity(true);
+                    setControlsEnabled(true);
+                    Toast.makeText(this, R.string.solution_not_found, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                playSolutionAnimations(solution);
+            });
+        }).start();
+    }
+
+    private void playSolutionAnimations(List<Integer> moves) {
+        long delay = 0L;
+        for (int i = 0; i < moves.size(); i++) {
+            int tileValue = moves.get(i);
+            boolean isLast = i == moves.size() - 1;
+            autoSolveHandler.postDelayed(() -> performAutoMove(tileValue, isLast), delay);
+            delay += 360L;
+        }
+    }
+
+    private void performAutoMove(int tileValue, boolean isLast) {
+        GridLayout grid = findViewById(R.id.puzzleGrid);
+        TextView targetTile = null;
+        TextView blankTile = null;
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            TextView tile = (TextView) grid.getChildAt(i);
+            Object tag = tile.getTag(R.id.tag_tile_content);
+            if (tag instanceof Integer) {
+                int value = (Integer) tag;
+                if (value == tileValue) {
+                    targetTile = tile;
+                } else if (value == BLANK_INDEX) {
+                    blankTile = tile;
+                }
+            }
+        }
+        if (targetTile == null || blankTile == null) {
+            finishAutoSolving();
+            return;
+        }
+
+        float dx = blankTile.getX() - targetTile.getX();
+        float dy = blankTile.getY() - targetTile.getY();
+        targetTile.bringToFront();
+        targetTile.animate()
+                .translationX(dx)
+                .translationY(dy)
+                .setDuration(320)
+                .setInterpolator(new AccelerateDecelerateInterpolator())
+                .withEndAction(() -> {
+                    targetTile.setTranslationX(0f);
+                    targetTile.setTranslationY(0f);
+                    transferTileContent(targetTile, blankTile);
+                    if (isLast) {
+                        finishAutoSolving();
+                    }
+                })
+                .start();
+        blankTile.animate()
+                .scaleX(0.95f)
+                .scaleY(0.95f)
+                .setDuration(160)
+                .setInterpolator(new AccelerateDecelerateInterpolator())
+                .withEndAction(() -> blankTile.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(160)
+                        .setInterpolator(new AccelerateDecelerateInterpolator()))
+                .start();
+    }
+
+    private void finishAutoSolving() {
+        autoSolveHandler.removeCallbacksAndMessages(null);
+        puzzleSolved = true;
+        autoSolving = false;
+        setTileInteractivity(true);
+        setControlsEnabled(true);
+    }
+
     private void transferTileContent(TextView from, TextView to) {
         to.setText(from.getText());
         to.setForeground(from.getForeground());
@@ -215,8 +333,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void registerMove() {
-        moveCount++;
-        if (!puzzleSolved && isPuzzleSolved()) {
+        if (!autoSolving) {
+            moveCount++;
+        }
+        if (!autoSolving && !puzzleSolved && isPuzzleSolved()) {
             onPuzzleSolved();
         }
     }
@@ -306,6 +426,10 @@ public class MainActivity extends AppCompatActivity {
     private void resetMoveTracking() {
         moveCount = 0;
         puzzleSolved = false;
+        autoSolving = false;
+        autoSolveHandler.removeCallbacksAndMessages(null);
+        setTileInteractivity(true);
+        setControlsEnabled(true);
     }
 
     private static class PuzzlePiece {
@@ -318,8 +442,206 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private static class StateStep {
+        final String parentKey;
+        final char movedTile;
+
+        StateStep(String parentKey, char movedTile) {
+            this.parentKey = parentKey;
+            this.movedTile = movedTile;
+        }
+    }
+
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+    private int[] getCurrentState() {
+        GridLayout grid = findViewById(R.id.puzzleGrid);
+        int[] state = new int[grid.getChildCount()];
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            TextView tile = (TextView) grid.getChildAt(i);
+            Object tag = tile.getTag(R.id.tag_tile_content);
+            if (tag instanceof Integer) {
+                state[i] = (Integer) tag;
+            } else {
+                state[i] = BLANK_INDEX;
+            }
+        }
+        return state;
+    }
+
+    private boolean isSolvedState(int[] state) {
+        for (int i = 0; i < state.length; i++) {
+            if (state[i] != i) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isSolvable(List<Integer> order) {
+        int[] array = new int[order.size()];
+        for (int i = 0; i < order.size(); i++) {
+            array[i] = order.get(i);
+        }
+        return isSolvable(array);
+    }
+
+    private boolean isSolvablePieces(List<PuzzlePiece> pieces) {
+        List<Integer> order = new ArrayList<>();
+        for (PuzzlePiece piece : pieces) {
+            order.add(piece.index);
+        }
+        return isSolvable(order);
+    }
+
+    private boolean isSolvable(int[] state) {
+        int inversions = 0;
+        for (int i = 0; i < state.length; i++) {
+            if (state[i] == BLANK_INDEX) continue;
+            for (int j = i + 1; j < state.length; j++) {
+                if (state[j] == BLANK_INDEX) continue;
+                if (state[i] > state[j]) {
+                    inversions++;
+                }
+            }
+        }
+        if (GRID_DIMENSION % 2 == 1) {
+            return inversions % 2 == 0;
+        }
+        int blankRowFromBottom = GRID_DIMENSION - (findBlankRow(state));
+        if (blankRowFromBottom % 2 == 0) {
+            return inversions % 2 == 1;
+        } else {
+            return inversions % 2 == 0;
+        }
+    }
+
+    private int findBlankRow(int[] state) {
+        for (int i = 0; i < state.length; i++) {
+            if (state[i] == BLANK_INDEX) {
+                return i / GRID_DIMENSION;
+            }
+        }
+        return 0;
+    }
+
+    private List<Integer> findSolutionPath(int[] start) {
+        String startKey = stateToKey(start);
+        String goalKey = goalKey(start.length);
+        if (startKey.equals(goalKey)) {
+            return new ArrayList<>();
+        }
+
+        Queue<String> queue = new ArrayDeque<>();
+        Map<String, StateStep> cameFrom = new HashMap<>();
+        Set<String> visited = new HashSet<>();
+
+        queue.add(startKey);
+        visited.add(startKey);
+
+        while (!queue.isEmpty()) {
+            String current = queue.poll();
+            if (current.equals(goalKey)) {
+                return reconstructMoves(cameFrom, current);
+            }
+            int blankPosition = current.indexOf(charForValue(BLANK_INDEX));
+            for (int neighbor : adjacentPositions(blankPosition)) {
+                char[] next = current.toCharArray();
+                char moved = next[neighbor];
+                next[blankPosition] = moved;
+                next[neighbor] = charForValue(BLANK_INDEX);
+                String nextKey = new String(next);
+                if (visited.contains(nextKey)) {
+                    continue;
+                }
+                visited.add(nextKey);
+                cameFrom.put(nextKey, new StateStep(current, moved));
+                queue.add(nextKey);
+            }
+        }
+        return null;
+    }
+
+    private List<Integer> reconstructMoves(Map<String, StateStep> cameFrom, String goalKey) {
+        List<Integer> moves = new ArrayList<>();
+        String current = goalKey;
+        while (cameFrom.containsKey(current)) {
+            StateStep step = cameFrom.get(current);
+            moves.add(0, valueFromChar(step.movedTile));
+            current = step.parentKey;
+        }
+        return moves;
+    }
+
+    private String stateToKey(int[] state) {
+        StringBuilder builder = new StringBuilder(state.length);
+        for (int value : state) {
+            builder.append(charForValue(value));
+        }
+        return builder.toString();
+    }
+
+    private String goalKey(int length) {
+        StringBuilder builder = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            builder.append(charForValue(i));
+        }
+        return builder.toString();
+    }
+
+    private char charForValue(int value) {
+        return (char) ('a' + value);
+    }
+
+    private int valueFromChar(char c) {
+        return c - 'a';
+    }
+
+    private int[] adjacentPositions(int index) {
+        int row = index / GRID_DIMENSION;
+        int col = index % GRID_DIMENSION;
+        int[] candidates = new int[4];
+        int count = 0;
+        if (row > 0) candidates[count++] = (row - 1) * GRID_DIMENSION + col;
+        if (row < GRID_DIMENSION - 1) candidates[count++] = (row + 1) * GRID_DIMENSION + col;
+        if (col > 0) candidates[count++] = row * GRID_DIMENSION + (col - 1);
+        if (col < GRID_DIMENSION - 1) candidates[count++] = row * GRID_DIMENSION + (col + 1);
+        int[] result = new int[count];
+        System.arraycopy(candidates, 0, result, 0, count);
+        return result;
+    }
+
+    private void setTileInteractivity(boolean enabled) {
+        GridLayout grid = findViewById(R.id.puzzleGrid);
+        if (grid == null) {
+            return;
+        }
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            TextView tile = (TextView) grid.getChildAt(i);
+            tile.setEnabled(enabled);
+            tile.setClickable(enabled);
+            tile.setFocusable(enabled);
+            if (enabled) {
+                tile.setOnTouchListener(touchListener);
+                tile.setOnDragListener(dragListener);
+            } else {
+                tile.setOnTouchListener(null);
+                tile.setOnDragListener(null);
+            }
+        }
+    }
+
+    private void setControlsEnabled(boolean enabled) {
+        Button add = findViewById(R.id.btnImage);
+        Button remove = findViewById(R.id.btnRemoveImage);
+        Button ranking = findViewById(R.id.btnRanking);
+        Button solve = findViewById(R.id.btnSolve);
+        if (add != null) add.setEnabled(enabled);
+        if (remove != null) remove.setEnabled(enabled);
+        if (ranking != null) ranking.setEnabled(enabled);
+        if (solve != null) solve.setEnabled(enabled);
     }
 
     @Override
@@ -349,6 +671,8 @@ public class MainActivity extends AppCompatActivity {
         remove.setOnClickListener(v -> clearImagePuzzle());
         Button ranking = findViewById(R.id.btnRanking);
         ranking.setOnClickListener(v -> showRankingDialog());
+        Button solve = findViewById(R.id.btnSolve);
+        solve.setOnClickListener(v -> autoSolvePuzzle());
     }
 
     @Override
@@ -357,5 +681,6 @@ public class MainActivity extends AppCompatActivity {
         if (databaseHelper != null) {
             databaseHelper.close();
         }
+        autoSolveHandler.removeCallbacksAndMessages(null);
     }
 }

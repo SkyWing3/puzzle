@@ -94,6 +94,15 @@
         app:layout_constraintEnd_toEndOf="parent">
 
         <Button
+            android:id="@+id/btnSolve"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/auto_solve_button"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@color/solveButton"
+            android:layout_marginEnd="12dp" />
+
+        <Button
             android:id="@+id/btnRanking"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
