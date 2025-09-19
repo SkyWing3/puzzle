@@ -35,8 +35,10 @@ import androidx.core.view.WindowInsetsCompat;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 
 import androidx.transition.AutoTransition;
@@ -54,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private PuzzleSolver puzzleSolver;
 
     private final Handler autoSolveHandler = new Handler(Looper.getMainLooper());
+    private final Deque<Integer> pendingAutoMoves = new ArrayDeque<>();
 
     private final View.OnTouchListener touchListener = (v, event) -> {
         if (event.getAction() != MotionEvent.ACTION_DOWN) return false;
@@ -229,6 +232,7 @@ public class MainActivity extends AppCompatActivity {
 
         autoSolving = true;
         autoSolveHandler.removeCallbacksAndMessages(null);
+        pendingAutoMoves.clear();
         setTileInteractivity(false);
         setControlsEnabled(false);
 
@@ -248,16 +252,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void playSolutionAnimations(List<Integer> moves) {
-        long delay = 0L;
-        for (int i = 0; i < moves.size(); i++) {
-            int tileValue = moves.get(i);
-            boolean isLast = i == moves.size() - 1;
-            autoSolveHandler.postDelayed(() -> performAutoMove(tileValue, isLast), delay);
-            delay += 360L;
-        }
+        pendingAutoMoves.clear();
+        pendingAutoMoves.addAll(moves);
+        executeNextAutoMove();
     }
 
-    private void performAutoMove(int tileValue, boolean isLast) {
+    private void executeNextAutoMove() {
+        if (pendingAutoMoves.isEmpty()) {
+            finishAutoSolving();
+            return;
+        }
+        Integer tileValue = pendingAutoMoves.pollFirst();
+        if (tileValue == null) {
+            finishAutoSolving();
+            return;
+        }
+        performAutoMove(tileValue, () -> autoSolveHandler.postDelayed(this::executeNextAutoMove, 60L));
+    }
+
+    private void performAutoMove(int tileValue, Runnable onStepFinished) {
         GridLayout grid = findViewById(R.id.puzzleGrid);
         TextView targetTile = null;
         TextView blankTile = null;
@@ -299,8 +312,8 @@ public class MainActivity extends AppCompatActivity {
                     finalTargetTile.setTranslationX(0f);
                     finalTargetTile.setTranslationY(0f);
                     transferTileContent(finalTargetTile, finalBlankTile);
-                    if (isLast) {
-                        finishAutoSolving();
+                    if (onStepFinished != null) {
+                        onStepFinished.run();
                     }
                 })
                 .start();
@@ -319,6 +332,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void finishAutoSolving() {
         autoSolveHandler.removeCallbacksAndMessages(null);
+        pendingAutoMoves.clear();
         puzzleSolved = true;
         autoSolving = false;
         setTileInteractivity(true);
@@ -327,6 +341,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void abortAutoSolving() {
         autoSolveHandler.removeCallbacksAndMessages(null);
+        pendingAutoMoves.clear();
         autoSolving = false;
         setTileInteractivity(true);
         setControlsEnabled(true);
@@ -439,6 +454,7 @@ public class MainActivity extends AppCompatActivity {
         puzzleSolved = false;
         autoSolving = false;
         autoSolveHandler.removeCallbacksAndMessages(null);
+        pendingAutoMoves.clear();
         setTileInteractivity(true);
         setControlsEnabled(true);
     }
