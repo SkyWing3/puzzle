@@ -37,12 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Set;
 
 import androidx.transition.AutoTransition;
 import androidx.transition.TransitionManager;
@@ -56,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private int moveCount = 0;
     private boolean puzzleSolved = false;
     private boolean autoSolving = false;
+    private PuzzleSolver puzzleSolver;
 
     private final Handler autoSolveHandler = new Handler(Looper.getMainLooper());
 
@@ -237,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
         setControlsEnabled(false);
 
         new Thread(() -> {
-            List<Integer> solution = findSolutionPath(currentState);
+            List<Integer> solution = puzzleSolver.solve(currentState);
             runOnUiThread(() -> {
                 if (solution == null || solution.isEmpty()) {
                     autoSolving = false;
@@ -457,39 +453,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private static class SearchNode implements Comparable<SearchNode> {
-        final String key;
-        final int blankIndex;
-        final int gScore;
-        final int fScore;
-
-        SearchNode(String key, int blankIndex, int gScore, int fScore) {
-            this.key = key;
-            this.blankIndex = blankIndex;
-            this.gScore = gScore;
-            this.fScore = fScore;
-        }
-
-        @Override
-        public int compareTo(SearchNode other) {
-            int cmp = Integer.compare(this.fScore, other.fScore);
-            if (cmp != 0) {
-                return cmp;
-            }
-            return Integer.compare(this.gScore, other.gScore);
-        }
-    }
-
-    private static class StateStep {
-        final String parentKey;
-        final char movedTile;
-
-        StateStep(String parentKey, char movedTile) {
-            this.parentKey = parentKey;
-            this.movedTile = movedTile;
-        }
-    }
-
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
     }
@@ -565,124 +528,6 @@ public class MainActivity extends AppCompatActivity {
         return 0;
     }
 
-    private List<Integer> findSolutionPath(int[] start) {
-        String startKey = stateToKey(start);
-        String goalKey = goalKey(start.length);
-        if (startKey.equals(goalKey)) {
-            return new ArrayList<>();
-        }
-
-        PriorityQueue<SearchNode> openSet = new PriorityQueue<>();
-        Map<String, Integer> gScores = new HashMap<>();
-        Map<String, StateStep> cameFrom = new HashMap<>();
-        Set<String> closedSet = new HashSet<>();
-
-        int blankIndex = startKey.indexOf(charForValue(BLANK_INDEX));
-        int heuristic = manhattanDistance(startKey);
-        openSet.add(new SearchNode(startKey, blankIndex, 0, heuristic));
-        gScores.put(startKey, 0);
-
-        while (!openSet.isEmpty()) {
-            SearchNode current = openSet.poll();
-            if (closedSet.contains(current.key)) {
-                continue;
-            }
-            if (current.key.equals(goalKey)) {
-                return reconstructMoves(cameFrom, current.key);
-            }
-            closedSet.add(current.key);
-
-            for (int neighbor : adjacentPositions(current.blankIndex)) {
-                char[] nextChars = current.key.toCharArray();
-                char movedTile = nextChars[neighbor];
-                nextChars[current.blankIndex] = movedTile;
-                nextChars[neighbor] = charForValue(BLANK_INDEX);
-                String nextKey = new String(nextChars);
-
-                if (closedSet.contains(nextKey)) {
-                    continue;
-                }
-
-                int tentativeG = current.gScore + 1;
-                Integer existingScore = gScores.get(nextKey);
-                if (existingScore != null && tentativeG >= existingScore) {
-                    continue;
-                }
-
-                gScores.put(nextKey, tentativeG);
-                cameFrom.put(nextKey, new StateStep(current.key, movedTile));
-                int nextHeuristic = manhattanDistance(nextKey);
-                openSet.add(new SearchNode(nextKey, neighbor, tentativeG, tentativeG + nextHeuristic));
-            }
-        }
-        return null;
-    }
-
-    private int manhattanDistance(String key) {
-        int distance = 0;
-        for (int i = 0; i < key.length(); i++) {
-            int value = valueFromChar(key.charAt(i));
-            if (value == BLANK_INDEX) {
-                continue;
-            }
-            int targetRow = value / GRID_DIMENSION;
-            int targetCol = value % GRID_DIMENSION;
-            int currentRow = i / GRID_DIMENSION;
-            int currentCol = i % GRID_DIMENSION;
-            distance += Math.abs(targetRow - currentRow) + Math.abs(targetCol - currentCol);
-        }
-        return distance;
-    }
-
-    private List<Integer> reconstructMoves(Map<String, StateStep> cameFrom, String goalKey) {
-        List<Integer> moves = new ArrayList<>();
-        String current = goalKey;
-        while (cameFrom.containsKey(current)) {
-            StateStep step = cameFrom.get(current);
-            moves.add(0, valueFromChar(step.movedTile));
-            current = step.parentKey;
-        }
-        return moves;
-    }
-
-    private String stateToKey(int[] state) {
-        StringBuilder builder = new StringBuilder(state.length);
-        for (int value : state) {
-            builder.append(charForValue(value));
-        }
-        return builder.toString();
-    }
-
-    private String goalKey(int length) {
-        StringBuilder builder = new StringBuilder(length);
-        for (int i = 0; i < length; i++) {
-            builder.append(charForValue(i));
-        }
-        return builder.toString();
-    }
-
-    private char charForValue(int value) {
-        return (char) ('a' + value);
-    }
-
-    private int valueFromChar(char c) {
-        return c - 'a';
-    }
-
-    private int[] adjacentPositions(int index) {
-        int row = index / GRID_DIMENSION;
-        int col = index % GRID_DIMENSION;
-        int[] candidates = new int[4];
-        int count = 0;
-        if (row > 0) candidates[count++] = (row - 1) * GRID_DIMENSION + col;
-        if (row < GRID_DIMENSION - 1) candidates[count++] = (row + 1) * GRID_DIMENSION + col;
-        if (col > 0) candidates[count++] = row * GRID_DIMENSION + (col - 1);
-        if (col < GRID_DIMENSION - 1) candidates[count++] = row * GRID_DIMENSION + (col + 1);
-        int[] result = new int[count];
-        System.arraycopy(candidates, 0, result, 0, count);
-        return result;
-    }
-
     private void setTileInteractivity(boolean enabled) {
         GridLayout grid = findViewById(R.id.puzzleGrid);
         if (grid == null) {
@@ -726,6 +571,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         databaseHelper = new ScoreDatabaseHelper(this);
+        puzzleSolver = new PuzzleSolver(GRID_DIMENSION);
         GridLayout grid = findViewById(R.id.puzzleGrid);
         setLetterPuzzle();
         for (int i = 0; i < grid.getChildCount(); i++) {
