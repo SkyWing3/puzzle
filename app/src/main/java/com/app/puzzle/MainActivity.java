@@ -279,12 +279,19 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         if (targetTile == null || blankTile == null) {
-            finishAutoSolving();
+            abortAutoSolving();
             return;
         }
 
-        float dx = blankTile.getX() - targetTile.getX();
-        float dy = blankTile.getY() - targetTile.getY();
+        int targetPosition = grid.indexOfChild(targetTile);
+        int blankPosition = grid.indexOfChild(blankTile);
+        if (!isAdjacent(targetPosition, blankPosition)) {
+            abortAutoSolving();
+            return;
+        }
+
+        float dx = blankTile.getLeft() - targetTile.getLeft();
+        float dy = blankTile.getTop() - targetTile.getTop();
         final TextView finalTargetTile = targetTile;
         final TextView finalBlankTile = blankTile;
         finalTargetTile.bringToFront();
@@ -318,6 +325,13 @@ public class MainActivity extends AppCompatActivity {
     private void finishAutoSolving() {
         autoSolveHandler.removeCallbacksAndMessages(null);
         puzzleSolved = true;
+        autoSolving = false;
+        setTileInteractivity(true);
+        setControlsEnabled(true);
+    }
+
+    private void abortAutoSolving() {
+        autoSolveHandler.removeCallbacksAndMessages(null);
         autoSolving = false;
         setTileInteractivity(true);
         setControlsEnabled(true);
