@@ -5,13 +5,15 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:hint="@string/hint_nickname"
-    app:boxBackgroundColor="@color/stat_card_background"
-    app:boxCornerRadiusTopStart="18dp"
-    app:boxCornerRadiusTopEnd="18dp"
-    app:boxCornerRadiusBottomStart="18dp"
-    app:boxCornerRadiusBottomEnd="18dp"
-    app:boxStrokeColor="@color/search_stroke"
-    app:boxStrokeWidthFocused="2dp">
+    app:boxBackgroundColor="@color/status_message_background"
+    app:boxCornerRadiusTopStart="22dp"
+    app:boxCornerRadiusTopEnd="22dp"
+    app:boxCornerRadiusBottomStart="22dp"
+    app:boxCornerRadiusBottomEnd="22dp"
+    app:boxStrokeColor="@color/decor_paw_light"
+    app:boxStrokeWidthFocused="2dp"
+    app:startIconDrawable="@drawable/ic_cat_face"
+    app:startIconTint="@color/decor_paw_dark">
 
     <com.google.android.material.textfield.TextInputEditText
         android:id="@+id/nicknameInput"

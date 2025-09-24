@@ -1,8 +1,8 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient
+        android:angle="90"
         android:startColor="@color/button_background"
-        android:endColor="@color/ranking_badge_background"
-        android:angle="90" />
+        android:endColor="@color/decor_paw_dark" />
     <corners android:radius="999dp" />
     <padding
         android:left="0dp"
