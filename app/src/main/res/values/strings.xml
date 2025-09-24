@@ -1,3 +1,13 @@
 <resources>
-    <string name="app_name">puzzle</string>
+    <string name="app_name">Puzzle Maestro</string>
+    <string name="toolbar_title">Rompecabezas deslizante</string>
+    <string name="puzzle_instructions">Arrastra las fichas hacia el espacio vacío para ordenarlas de la A a la H.</string>
+    <string name="move_counter_placeholder">Movimientos: 0</string>
+    <string name="move_counter">Movimientos: %1$d</string>
+    <string name="shuffle">Reiniciar tablero</string>
+    <string name="status_ready">Ordena las fichas para formar la secuencia correcta.</string>
+    <string name="status_keep_going">Sigue moviendo las fichas para completar el tablero.</string>
+    <string name="puzzle_solved">¡Lo lograste! El rompecabezas está resuelto.</string>
+    <string name="empty_tile_description">Casilla vacía</string>
+    <string name="tile_description">Ficha %1$s</string>
 </resources>
