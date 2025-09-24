@@ -6,7 +6,7 @@
     <string name="move_counter">Movimientos: %1$d</string>
     <string name="time_counter_placeholder">Tiempo: 00:00</string>
     <string name="time_counter">Tiempo: %1$s</string>
-    <string name="shuffle">Reiniciar tablero</string>
+    <string name="shuffle">Reiniciar partida</string>
     <string name="status_ready_level">Ordena las fichas para superar el nivel actual.</string>
     <string name="status_keep_going_level">Sigue moviendo las fichas para completar este nivel.</string>
     <string name="puzzle_solved_level">¡Nivel %1$d completado!</string>

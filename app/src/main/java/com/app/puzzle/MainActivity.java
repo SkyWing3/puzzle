@@ -259,7 +259,7 @@ public class MainActivity extends AppCompatActivity {
         loadPlayerProgress();
         configureForCurrentLevel();
 
-        shuffleButton.setOnClickListener(v -> resetBoard());
+        shuffleButton.setOnClickListener(v -> restartProgress());
         autoSolveButton.setOnClickListener(v -> startAutoSolve());
 
         pickImageButton.setOnClickListener(v -> launchImagePicker());
@@ -322,6 +322,23 @@ public class MainActivity extends AppCompatActivity {
         if (levelIndicatorView != null) {
             levelIndicatorView.setText(getString(R.string.level_indicator, currentLevel, currentGridSize));
         }
+    }
+
+    private void restartProgress() {
+        cancelAutoSolveIfRunning();
+        imageMode = false;
+        if (referenceCard != null) {
+            referenceCard.setVisibility(View.GONE);
+        }
+        if (referenceImageView != null) {
+            referenceImageView.setImageDrawable(null);
+        }
+        releaseImageResources();
+        currentLevel = 1;
+        accumulatedDurationMillis = 0L;
+        persistProgress();
+        configureForCurrentLevel();
+        resetBoard();
     }
 
     private void resetBoard() {
