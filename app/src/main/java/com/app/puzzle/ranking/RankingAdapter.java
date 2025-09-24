@@ -54,6 +54,7 @@ public class RankingAdapter extends RecyclerView.Adapter<RankingAdapter.ScoreVie
         holder.nicknameView.setText(entry.getNickname());
         String formattedTime = durationFormatter.format(entry.getDurationMillis());
         holder.timeView.setText(holder.itemView.getContext().getString(R.string.ranking_time_label, formattedTime));
+        holder.levelView.setText(holder.itemView.getContext().getString(R.string.ranking_level_label, entry.getLevel()));
         String dateLabel = dateFormat.format(new Date(entry.getCreatedAt()));
         holder.dateView.setText(holder.itemView.getContext().getString(R.string.ranking_date_label, dateLabel));
     }
@@ -67,6 +68,7 @@ public class RankingAdapter extends RecyclerView.Adapter<RankingAdapter.ScoreVie
         final TextView positionView;
         final TextView nicknameView;
         final TextView timeView;
+        final TextView levelView;
         final TextView dateView;
 
         ScoreViewHolder(@NonNull View itemView) {
@@ -74,6 +76,7 @@ public class RankingAdapter extends RecyclerView.Adapter<RankingAdapter.ScoreVie
             positionView = itemView.findViewById(R.id.positionView);
             nicknameView = itemView.findViewById(R.id.nicknameView);
             timeView = itemView.findViewById(R.id.timeView);
+            levelView = itemView.findViewById(R.id.levelView);
             dateView = itemView.findViewById(R.id.dateView);
         }
     }

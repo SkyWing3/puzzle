@@ -47,6 +47,13 @@
                 android:text="00:45" />
 
             <TextView
+                android:id="@+id/levelView"
+                style="@style/Widget.Puzzle.Status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Nivel 1" />
+
+            <TextView
                 android:id="@+id/dateView"
                 style="@style/Widget.Puzzle.Caption"
                 android:layout_width="wrap_content"

@@ -5,12 +5,14 @@ public class ScoreEntry {
     private final String nickname;
     private final long durationMillis;
     private final long createdAt;
+    private final int level;
 
-    public ScoreEntry(long id, String nickname, long durationMillis, long createdAt) {
+    public ScoreEntry(long id, String nickname, long durationMillis, long createdAt, int level) {
         this.id = id;
         this.nickname = nickname;
         this.durationMillis = durationMillis;
         this.createdAt = createdAt;
+        this.level = level;
     }
 
     public long getId() {
@@ -27,5 +29,9 @@ public class ScoreEntry {
 
     public long getCreatedAt() {
         return createdAt;
+    }
+
+    public int getLevel() {
+        return level;
     }
 }

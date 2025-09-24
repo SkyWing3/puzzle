@@ -12,19 +12,21 @@ import java.util.List;
 public class ScoreDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "puzzle_scores.db";
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
 
     public static final String TABLE_SCORES = "scores";
     public static final String COLUMN_ID = "_id";
     public static final String COLUMN_NICKNAME = "nickname";
     public static final String COLUMN_DURATION = "duration";
     public static final String COLUMN_CREATED_AT = "created_at";
+    public static final String COLUMN_LEVEL = "level";
 
     private static final String SQL_CREATE =
             "CREATE TABLE " + TABLE_SCORES + " ("
                     + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                     + COLUMN_NICKNAME + " TEXT NOT NULL,"
                     + COLUMN_DURATION + " INTEGER NOT NULL,"
+                    + COLUMN_LEVEL + " INTEGER NOT NULL,"
                     + COLUMN_CREATED_AT + " INTEGER NOT NULL"
                     + ")";
 
@@ -43,6 +45,9 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
             addColumnIfMissing(db, COLUMN_DURATION, "INTEGER NOT NULL DEFAULT 0");
             addColumnIfMissing(db, COLUMN_CREATED_AT, "INTEGER NOT NULL DEFAULT 0");
         }
+        if (oldVersion < 3) {
+            addColumnIfMissing(db, COLUMN_LEVEL, "INTEGER NOT NULL DEFAULT 1");
+        }
     }
 
     @Override
@@ -50,6 +55,7 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
         super.onOpen(db);
         addColumnIfMissing(db, COLUMN_DURATION, "INTEGER NOT NULL DEFAULT 0");
         addColumnIfMissing(db, COLUMN_CREATED_AT, "INTEGER NOT NULL DEFAULT 0");
+        addColumnIfMissing(db, COLUMN_LEVEL, "INTEGER NOT NULL DEFAULT 1");
     }
 
     private void addColumnIfMissing(SQLiteDatabase db, String columnName, String columnDefinition) {
@@ -77,14 +83,29 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
         return exists;
     }
 
-    public long insertScore(String nickname, long durationMillis) {
-        long timestamp = System.currentTimeMillis();
+    public long upsertScore(String nickname, long totalDurationMillis, int levelReached) {
         SQLiteDatabase db = getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(COLUMN_NICKNAME, nickname);
-        values.put(COLUMN_DURATION, durationMillis);
-        values.put(COLUMN_CREATED_AT, timestamp);
-        return db.insert(TABLE_SCORES, null, values);
+        ScoreEntry existing = findScoreByNickname(nickname);
+        long now = System.currentTimeMillis();
+        if (existing == null) {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_NICKNAME, nickname);
+            values.put(COLUMN_DURATION, totalDurationMillis);
+            values.put(COLUMN_LEVEL, levelReached);
+            values.put(COLUMN_CREATED_AT, now);
+            return db.insert(TABLE_SCORES, null, values);
+        } else {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_DURATION, totalDurationMillis);
+            values.put(COLUMN_LEVEL, levelReached);
+            int updated = db.update(
+                    TABLE_SCORES,
+                    values,
+                    COLUMN_ID + " = ?",
+                    new String[]{String.valueOf(existing.getId())}
+            );
+            return updated > 0 ? existing.getId() : -1;
+        }
     }
 
     public List<ScoreEntry> getAllScores() {
@@ -110,7 +131,7 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
                 selectionArgs,
                 null,
                 null,
-                COLUMN_DURATION + " ASC, " + COLUMN_CREATED_AT + " ASC"
+                COLUMN_DURATION + " ASC, " + COLUMN_LEVEL + " DESC, " + COLUMN_CREATED_AT + " ASC"
         )) {
             if (cursor != null && cursor.moveToFirst()) {
                 do {
@@ -118,10 +139,37 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
                     String nickname = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_NICKNAME));
                     long duration = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_DURATION));
                     long createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CREATED_AT));
-                    scores.add(new ScoreEntry(id, nickname, duration, createdAt));
+                    int level = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_LEVEL));
+                    scores.add(new ScoreEntry(id, nickname, duration, createdAt, level));
                 } while (cursor.moveToNext());
             }
         }
         return scores;
+    }
+
+    public ScoreEntry findScoreByNickname(String nickname) {
+        if (nickname == null || nickname.isEmpty()) {
+            return null;
+        }
+        SQLiteDatabase db = getReadableDatabase();
+        try (Cursor cursor = db.query(
+                TABLE_SCORES,
+                null,
+                COLUMN_NICKNAME + " = ?",
+                new String[]{nickname},
+                null,
+                null,
+                null,
+                "1"
+        )) {
+            if (cursor != null && cursor.moveToFirst()) {
+                long id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ID));
+                long duration = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_DURATION));
+                long createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CREATED_AT));
+                int level = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_LEVEL));
+                return new ScoreEntry(id, nickname, duration, createdAt, level);
+            }
+        }
+        return null;
     }
 }

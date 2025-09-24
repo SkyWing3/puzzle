@@ -37,6 +37,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/topAppBar" />
 
+    <TextView
+        android:id="@+id/levelIndicator"
+        style="@style/Widget.Puzzle.Counter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_medium"
+        android:text="@string/level_indicator_placeholder"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/instructionsText" />
+
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/boardCard"
         android:layout_width="0dp"
@@ -50,7 +61,7 @@
         app:cardElevation="@dimen/board_elevation"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/instructionsText">
+        app:layout_constraintTop_toBottomOf="@id/levelIndicator">
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -65,54 +76,9 @@
                 android:alignmentMode="alignMargins"
                 android:columnCount="3"
                 android:rowCount="3"
-                android:useDefaultMargins="true">
-
-                <TextView
-                    android:id="@+id/tile0"
-                    style="@style/Tile"
-                    tools:text="A" />
-
-                <TextView
-                    android:id="@+id/tile1"
-                    style="@style/Tile"
-                    tools:text="B" />
-
-                <TextView
-                    android:id="@+id/tile2"
-                    style="@style/Tile"
-                    tools:text="C" />
-
-                <TextView
-                    android:id="@+id/tile3"
-                    style="@style/Tile"
-                    tools:text="D" />
-
-                <TextView
-                    android:id="@+id/tile4"
-                    style="@style/Tile"
-                    tools:text="E" />
-
-                <TextView
-                    android:id="@+id/tile5"
-                    style="@style/Tile"
-                    tools:text="F" />
-
-                <TextView
-                    android:id="@+id/tile6"
-                    style="@style/Tile"
-                    tools:text="G" />
-
-                <TextView
-                    android:id="@+id/tile7"
-                    style="@style/Tile"
-                    tools:text="H" />
-
-                <TextView
-                    android:id="@+id/tile8"
-                    style="@style/Tile"
-                    tools:text="" />
-
-            </GridLayout>
+                android:useDefaultMargins="true"
+                tools:itemCount="9"
+                tools:listitem="@layout/view_tile" />
         </FrameLayout>
     </com.google.android.material.card.MaterialCardView>
 
@@ -148,7 +114,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_small"
-            android:text="@string/status_ready"
+            android:text="@string/status_ready_level"
             android:textAlignment="center" />
     </LinearLayout>
 

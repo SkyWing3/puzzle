@@ -84,8 +84,14 @@ public class RankingActivity extends AppCompatActivity {
     }
 
     private String formatDuration(long durationMillis) {
-        long minutes = TimeUnit.MILLISECONDS.toMinutes(durationMillis);
-        long seconds = TimeUnit.MILLISECONDS.toSeconds(durationMillis) - TimeUnit.MINUTES.toSeconds(minutes);
+        long totalMinutes = TimeUnit.MILLISECONDS.toMinutes(durationMillis);
+        long hours = totalMinutes / 60;
+        long minutes = totalMinutes - (hours * 60);
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(durationMillis)
+                - TimeUnit.MINUTES.toSeconds(totalMinutes);
+        if (hours > 0) {
+            return String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds);
+        }
         return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
     }
 

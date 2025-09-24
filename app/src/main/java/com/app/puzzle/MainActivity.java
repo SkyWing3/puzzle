@@ -3,6 +3,7 @@ package com.app.puzzle;
 import android.Manifest;
 import android.content.ClipData;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.ImageDecoder;
@@ -14,14 +15,15 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.view.DragEvent;
 import android.view.HapticFeedbackConstants;
-import android.view.MotionEvent;
-import android.view.View;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Button;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -45,7 +47,6 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -53,20 +54,21 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int GRID_SIZE = 3;
-    private static final int TILE_COUNT = GRID_SIZE * GRID_SIZE;
-    private static final int BLANK_TILE_INDEX = TILE_COUNT - 1;
-    private static final List<String> LETTER_GOAL_STATE = Arrays.asList(
-            "A", "B", "C", "D", "E", "F", "G", "H", "");
+    private static final int MIN_GRID_SIZE = 3;
+    private static final String PREFS_NAME = "puzzle_progress";
+    private static final String KEY_LEVEL = "progress_level";
+    private static final String KEY_NICKNAME = "progress_nickname";
+    private static final String KEY_TOTAL_DURATION = "progress_total_duration";
 
     private final List<TextView> tiles = new ArrayList<>();
-    private final List<Integer> currentBoard = new ArrayList<>(TILE_COUNT);
-    private final List<Bitmap> currentImageTiles = new ArrayList<>(TILE_COUNT);
+    private final List<Integer> currentBoard = new ArrayList<>();
+    private final List<Bitmap> currentImageTiles = new ArrayList<>();
 
     private GridLayout puzzleGrid;
     private TextView moveCounterView;
     private TextView timeCounterView;
     private TextView statusMessageView;
+    private TextView levelIndicatorView;
     private ImageView referenceImageView;
     private MaterialCardView referenceCard;
     private MaterialButton pickImageButton;
@@ -77,6 +79,12 @@ public class MainActivity extends AppCompatActivity {
     private int moveCounter = 0;
     private boolean imageMode = false;
     private boolean puzzleSolved = false;
+    private int currentLevel = 1;
+    private int currentGridSize = MIN_GRID_SIZE;
+    private int tileCount = currentGridSize * currentGridSize;
+    private int blankTileIndex = tileCount - 1;
+    private long accumulatedDurationMillis = 0L;
+    private String savedNickname;
 
     private ActivityResultLauncher<PickVisualMediaRequest> pickImageLauncher;
     private ActivityResultLauncher<Void> captureImageLauncher;
@@ -104,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private ScoreDatabaseHelper databaseHelper;
+    private SharedPreferences preferences;
 
     private final Runnable autoSolveRunnable = new Runnable() {
         @Override
@@ -116,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             int fromIndex = pendingAutoSolveMoves.get(autoSolveStepIndex);
-            int blankIndex = currentBoard.indexOf(BLANK_TILE_INDEX);
+            int blankIndex = currentBoard.indexOf(blankTileIndex);
             if (blankIndex == -1 || !isAdjacent(fromIndex, blankIndex)) {
                 finishAutoSolveFailure();
                 return;
@@ -133,6 +142,10 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private interface NicknameCallback {
+        void onNicknameChosen(String nickname);
+    }
+
     private final View.OnTouchListener touchListener = (v, event) -> {
         if (autoSolving) {
             return false;
@@ -145,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
         }
         TextView tv = (TextView) v;
         int tilePosition = (int) tv.getTag();
-        if (currentBoard.isEmpty() || currentBoard.get(tilePosition) == BLANK_TILE_INDEX) {
+        if (currentBoard.isEmpty() || currentBoard.get(tilePosition) == blankTileIndex) {
             return false;
         }
         View.DragShadowBuilder shadow = new View.DragShadowBuilder(v);
@@ -166,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
                 if (v instanceof TextView) {
                     TextView enteredTile = (TextView) v;
                     int targetIndex = (int) enteredTile.getTag();
-                    if (!currentBoard.isEmpty() && currentBoard.get(targetIndex) == BLANK_TILE_INDEX) {
+                    if (!currentBoard.isEmpty() && currentBoard.get(targetIndex) == blankTileIndex) {
                         enteredTile.animate().scaleX(1.05f).scaleY(1.05f).setDuration(100).start();
                     }
                 }
@@ -188,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
                 TextView to = (TextView) v;
                 int fromIndex = (int) from.getTag();
                 int toIndex = (int) to.getTag();
-                if (currentBoard.get(toIndex) != BLANK_TILE_INDEX) {
+                if (currentBoard.get(toIndex) != blankTileIndex) {
                     return false;
                 }
                 if (isAdjacent(fromIndex, toIndex)) {
@@ -229,6 +242,7 @@ public class MainActivity extends AppCompatActivity {
         moveCounterView = findViewById(R.id.moveCounter);
         timeCounterView = findViewById(R.id.timeCounter);
         statusMessageView = findViewById(R.id.statusMessage);
+        levelIndicatorView = findViewById(R.id.levelIndicator);
         referenceCard = findViewById(R.id.referenceCard);
         referenceImageView = findViewById(R.id.referenceImage);
         pickImageButton = findViewById(R.id.pickImageButton);
@@ -237,8 +251,9 @@ public class MainActivity extends AppCompatActivity {
         autoSolveButton = findViewById(R.id.autoSolveButton);
 
         databaseHelper = new ScoreDatabaseHelper(this);
-
-        prepareTiles();
+        preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        loadPlayerProgress();
+        configureForCurrentLevel();
 
         shuffleButton.setOnClickListener(v -> resetBoard());
         autoSolveButton.setOnClickListener(v -> startAutoSolve());
@@ -250,29 +265,63 @@ public class MainActivity extends AppCompatActivity {
         resetBoard();
     }
 
-    private void prepareTiles() {
+    private void loadPlayerProgress() {
+        if (preferences == null) {
+            return;
+        }
+        currentLevel = Math.max(1, preferences.getInt(KEY_LEVEL, 1));
+        accumulatedDurationMillis = preferences.getLong(KEY_TOTAL_DURATION, 0L);
+        savedNickname = preferences.getString(KEY_NICKNAME, null);
+        if (savedNickname != null) {
+            savedNickname = savedNickname.trim();
+        }
+    }
+
+    private void configureForCurrentLevel() {
+        currentGridSize = MIN_GRID_SIZE + (currentLevel - 1);
+        tileCount = currentGridSize * currentGridSize;
+        blankTileIndex = tileCount - 1;
+        rebuildPuzzleGrid();
+        updateLevelIndicator();
+    }
+
+    private void rebuildPuzzleGrid() {
+        if (puzzleGrid == null) {
+            return;
+        }
         tiles.clear();
-        for (int i = 0; i < puzzleGrid.getChildCount(); i++) {
-            View child = puzzleGrid.getChildAt(i);
-            if (child instanceof TextView) {
-                TextView tile = (TextView) child;
-                tile.setTag(i);
-                tile.setOnTouchListener(touchListener);
-                tile.setOnDragListener(dragListener);
-                tiles.add(tile);
-            }
+        puzzleGrid.removeAllViews();
+        puzzleGrid.setColumnCount(currentGridSize);
+        puzzleGrid.setRowCount(currentGridSize);
+        LayoutInflater inflater = LayoutInflater.from(this);
+        for (int i = 0; i < tileCount; i++) {
+            TextView tile = (TextView) inflater.inflate(R.layout.view_tile, puzzleGrid, false);
+            tile.setId(View.generateViewId());
+            tile.setTag(i);
+            tile.setOnTouchListener(touchListener);
+            tile.setOnDragListener(dragListener);
+            puzzleGrid.addView(tile);
+            tiles.add(tile);
+        }
+        currentBoard.clear();
+    }
+
+    private void updateLevelIndicator() {
+        if (levelIndicatorView != null) {
+            levelIndicatorView.setText(getString(R.string.level_indicator, currentLevel, currentGridSize));
         }
     }
 
     private void resetBoard() {
         cancelAutoSolveIfRunning();
+        updateLevelIndicator();
         List<Integer> board = generateSolvableBoard();
         applyBoard(board);
         moveCounter = 0;
         updateMoveCounter();
         puzzleSolved = false;
         startNewTimer();
-        statusMessageView.setText(imageMode ? R.string.status_ready_image : R.string.status_ready);
+        statusMessageView.setText(imageMode ? R.string.status_ready_image : R.string.status_ready_level);
         referenceCard.setVisibility(imageMode ? View.VISIBLE : View.GONE);
         if (autoSolveButton != null) {
             autoSolveButton.setEnabled(true);
@@ -288,17 +337,84 @@ public class MainActivity extends AppCompatActivity {
             if (!puzzleSolved) {
                 puzzleSolved = true;
                 long elapsed = stopTimer();
-                statusMessageView.setText(R.string.puzzle_solved);
-                showNicknameDialog(elapsed);
+                statusMessageView.setText(getString(R.string.puzzle_solved_level, currentLevel));
+                handlePuzzleCompletion(elapsed);
             }
         } else {
-            statusMessageView.setText(imageMode ? R.string.status_keep_going_image : R.string.status_keep_going);
+            statusMessageView.setText(imageMode ? R.string.status_keep_going_image : R.string.status_keep_going_level);
         }
         updateTilesAppearance();
     }
 
     private void updateMoveCounter() {
         moveCounterView.setText(getString(R.string.move_counter, moveCounter));
+    }
+
+    private void handlePuzzleCompletion(long elapsedMillis) {
+        final long newTotal = accumulatedDurationMillis + elapsedMillis;
+        if (savedNickname == null || savedNickname.trim().isEmpty()) {
+            showNicknameDialog(elapsedMillis, nickname -> {
+                savedNickname = nickname;
+                accumulatedDurationMillis = newTotal;
+                persistProgress();
+                long result = databaseHelper.upsertScore(savedNickname, accumulatedDurationMillis, currentLevel);
+                if (result == -1) {
+                    Snackbar.make(rootView, R.string.error_saving_score, Snackbar.LENGTH_SHORT).show();
+                } else {
+                    Snackbar.make(rootView, R.string.score_saved, Snackbar.LENGTH_SHORT).show();
+                }
+                showLevelCompleteDialog(elapsedMillis, accumulatedDurationMillis);
+            });
+        } else {
+            accumulatedDurationMillis = newTotal;
+            persistProgress();
+            long result = databaseHelper.upsertScore(savedNickname, accumulatedDurationMillis, currentLevel);
+            if (result == -1) {
+                Snackbar.make(rootView, R.string.error_saving_score, Snackbar.LENGTH_SHORT).show();
+            } else {
+                Snackbar.make(rootView, R.string.score_updated, Snackbar.LENGTH_SHORT).show();
+            }
+            showLevelCompleteDialog(elapsedMillis, accumulatedDurationMillis);
+        }
+    }
+
+    private void showLevelCompleteDialog(long levelDurationMillis, long totalDurationMillis) {
+        String levelTime = formatDuration(levelDurationMillis);
+        String totalTime = formatDuration(totalDurationMillis);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(getString(R.string.dialog_title_level_complete, currentLevel))
+                .setMessage(getString(R.string.dialog_message_level_complete, levelTime, totalTime))
+                .setPositiveButton(R.string.action_next_level, (dialog, which) -> {
+                    dialog.dismiss();
+                    advanceToNextLevel();
+                })
+                .setCancelable(false)
+                .show();
+    }
+
+    private void advanceToNextLevel() {
+        currentLevel++;
+        imageMode = false;
+        referenceCard.setVisibility(View.GONE);
+        referenceImageView.setImageDrawable(null);
+        releaseCurrentImageTiles();
+        currentImageTiles.clear();
+        persistProgress();
+        configureForCurrentLevel();
+        resetBoard();
+    }
+
+    private void persistProgress() {
+        if (preferences == null) {
+            return;
+        }
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putInt(KEY_LEVEL, currentLevel);
+        editor.putLong(KEY_TOTAL_DURATION, accumulatedDurationMillis);
+        if (savedNickname != null) {
+            editor.putString(KEY_NICKNAME, savedNickname);
+        }
+        editor.apply();
     }
 
     private void startNewTimer() {
@@ -341,8 +457,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String formatDuration(long durationMillis) {
-        long minutes = TimeUnit.MILLISECONDS.toMinutes(durationMillis);
-        long seconds = TimeUnit.MILLISECONDS.toSeconds(durationMillis) - TimeUnit.MINUTES.toSeconds(minutes);
+        long totalMinutes = TimeUnit.MILLISECONDS.toMinutes(durationMillis);
+        long hours = totalMinutes / 60;
+        long minutes = totalMinutes - (hours * 60);
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(durationMillis)
+                - TimeUnit.MINUTES.toSeconds(totalMinutes);
+        if (hours > 0) {
+            return String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds);
+        }
         return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
     }
 
@@ -358,7 +480,7 @@ public class MainActivity extends AppCompatActivity {
     private void updateTilesAppearance() {
         for (int i = 0; i < tiles.size(); i++) {
             TextView tile = tiles.get(i);
-            boolean isBlank = currentBoard.get(i) == BLANK_TILE_INDEX;
+            boolean isBlank = currentBoard.get(i) == blankTileIndex;
             tile.setAlpha(isBlank ? 0.35f : 1f);
             if (isBlank) {
                 tile.setContentDescription(getString(R.string.empty_tile_description));
@@ -376,24 +498,30 @@ public class MainActivity extends AppCompatActivity {
         if (imageMode) {
             tileView.setText("");
             tileView.setBackgroundResource(R.drawable.bg_tile);
-            if (tileIndex == BLANK_TILE_INDEX) {
+            if (tileIndex == blankTileIndex) {
                 tileView.setForeground(null);
             } else {
-                Bitmap bitmap = currentImageTiles.get(tileIndex);
+                Bitmap bitmap = tileIndex < currentImageTiles.size() ? currentImageTiles.get(tileIndex) : null;
                 if (bitmap != null) {
                     tileView.setForeground(new BitmapDrawable(getResources(), bitmap));
+                } else {
+                    tileView.setForeground(null);
                 }
             }
         } else {
             tileView.setForeground(null);
-            tileView.setText(LETTER_GOAL_STATE.get(tileIndex));
+            if (tileIndex == blankTileIndex) {
+                tileView.setText("");
+            } else {
+                tileView.setText(String.valueOf(tileIndex + 1));
+            }
             tileView.setBackgroundResource(R.drawable.bg_tile);
         }
     }
 
     private List<Integer> generateSolvableBoard() {
-        List<Integer> board = new ArrayList<>(TILE_COUNT);
-        for (int i = 0; i < TILE_COUNT; i++) {
+        List<Integer> board = new ArrayList<>(tileCount);
+        for (int i = 0; i < tileCount; i++) {
             board.add(i);
         }
         do {
@@ -415,12 +543,12 @@ public class MainActivity extends AppCompatActivity {
         int inversions = 0;
         for (int i = 0; i < board.size(); i++) {
             int current = board.get(i);
-            if (current == BLANK_TILE_INDEX) {
+            if (current == blankTileIndex) {
                 continue;
             }
             for (int j = i + 1; j < board.size(); j++) {
                 int next = board.get(j);
-                if (next == BLANK_TILE_INDEX) {
+                if (next == blankTileIndex) {
                     continue;
                 }
                 if (current > next) {
@@ -428,14 +556,23 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-        return inversions % 2 == 0;
+        if (currentGridSize % 2 == 1) {
+            return inversions % 2 == 0;
+        }
+        int blankRow = board.indexOf(blankTileIndex) / currentGridSize;
+        int blankRowFromBottom = currentGridSize - blankRow;
+        if (blankRowFromBottom % 2 == 0) {
+            return inversions % 2 == 1;
+        } else {
+            return inversions % 2 == 0;
+        }
     }
 
     private boolean isAdjacent(int a, int b) {
-        int ar = a / GRID_SIZE;
-        int ac = a % GRID_SIZE;
-        int br = b / GRID_SIZE;
-        int bc = b % GRID_SIZE;
+        int ar = a / currentGridSize;
+        int ac = a % currentGridSize;
+        int br = b / currentGridSize;
+        int bc = b % currentGridSize;
         return Math.abs(ar - br) + Math.abs(ac - bc) == 1;
     }
 
@@ -446,7 +583,7 @@ public class MainActivity extends AppCompatActivity {
         updateTilesAppearance();
     }
 
-    private void showNicknameDialog(long elapsedMillis) {
+    private void showNicknameDialog(long elapsedMillis, NicknameCallback callback) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_nickname, null);
         TextInputEditText nicknameInput = dialogView.findViewById(R.id.nicknameInput);
 
@@ -469,11 +606,8 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
                 nicknameInput.setError(null);
-                long result = databaseHelper.insertScore(nickname, elapsedMillis);
-                if (result == -1) {
-                    Snackbar.make(rootView, R.string.error_saving_score, Snackbar.LENGTH_SHORT).show();
-                } else {
-                    Snackbar.make(rootView, R.string.score_saved, Snackbar.LENGTH_SHORT).show();
+                if (callback != null) {
+                    callback.onNicknameChosen(nickname);
                 }
                 dialog.dismiss();
             });
@@ -529,7 +663,7 @@ public class MainActivity extends AppCompatActivity {
         setInteractionControlsEnabled(false);
         List<Integer> boardSnapshot = new ArrayList<>(currentBoard);
         new Thread(() -> {
-            List<Integer> solutionMoves = PuzzleSolver.solve(boardSnapshot, GRID_SIZE);
+            List<Integer> solutionMoves = PuzzleSolver.solve(boardSnapshot, currentGridSize);
             runOnUiThread(() -> handleAutoSolveResult(solutionMoves));
         }).start();
     }
@@ -669,7 +803,7 @@ public class MainActivity extends AppCompatActivity {
         int xOffset = (original.getWidth() - size) / 2;
         int yOffset = (original.getHeight() - size) / 2;
         Bitmap square = Bitmap.createBitmap(original, xOffset, yOffset, size, size);
-        int targetSize = getResources().getDimensionPixelSize(R.dimen.tile_size) * GRID_SIZE;
+        int targetSize = getResources().getDimensionPixelSize(R.dimen.tile_size) * currentGridSize;
         if (square.getWidth() != targetSize) {
             return Bitmap.createScaledBitmap(square, targetSize, targetSize, true);
         }
@@ -680,10 +814,10 @@ public class MainActivity extends AppCompatActivity {
         clearTileForegrounds();
         releaseCurrentImageTiles();
         currentImageTiles.clear();
-        int tileSize = bitmap.getWidth() / GRID_SIZE;
-        for (int row = 0; row < GRID_SIZE; row++) {
-            for (int col = 0; col < GRID_SIZE; col++) {
-                if (row == GRID_SIZE - 1 && col == GRID_SIZE - 1) {
+        int tileSize = bitmap.getWidth() / currentGridSize;
+        for (int row = 0; row < currentGridSize; row++) {
+            for (int col = 0; col < currentGridSize; col++) {
+                if (row == currentGridSize - 1 && col == currentGridSize - 1) {
                     currentImageTiles.add(null);
                     continue;
                 }
@@ -693,8 +827,8 @@ public class MainActivity extends AppCompatActivity {
                 currentImageTiles.add(tileBitmap);
             }
         }
-        // Ensure list has TILE_COUNT elements (last null already added)
-        if (currentImageTiles.size() < TILE_COUNT) {
+        // Ensure list has tileCount elements (last null already added)
+        if (currentImageTiles.size() < tileCount) {
             currentImageTiles.add(null);
         }
     }
