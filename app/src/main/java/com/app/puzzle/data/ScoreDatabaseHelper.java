@@ -12,7 +12,7 @@ import java.util.List;
 public class ScoreDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "puzzle_scores.db";
-    private static final int DATABASE_VERSION = 6;
+    private static final int DATABASE_VERSION = 7;
 
     public static final String TABLE_SCORES = "scores";
     public static final String COLUMN_ID = "_id";
@@ -41,10 +41,12 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(SQL_CREATE);
+        ensureNicknameIndex(db);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        ensureScoresTableExists(db);
         if (oldVersion < 2) {
             addColumnIfMissing(db, COLUMN_DURATION, "INTEGER NOT NULL DEFAULT 0");
             addColumnIfMissing(db, COLUMN_CREATED_AT, "INTEGER NOT NULL DEFAULT 0");
@@ -63,11 +65,16 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 6) {
             addColumnIfMissing(db, COLUMN_MOVES, "INTEGER NOT NULL DEFAULT 0");
         }
+        if (oldVersion < 7) {
+            ensureNicknameIndex(db);
+        }
     }
 
     @Override
     public void onOpen(SQLiteDatabase db) {
         super.onOpen(db);
+        ensureScoresTableExists(db);
+        ensureNicknameIndex(db);
         addColumnIfMissing(db, COLUMN_DURATION, "INTEGER NOT NULL DEFAULT 0");
         addColumnIfMissing(db, COLUMN_CREATED_AT, "INTEGER NOT NULL DEFAULT 0");
         addColumnIfMissing(db, COLUMN_LEVEL, "INTEGER NOT NULL DEFAULT 1");
@@ -77,12 +84,18 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
     }
 
     private void addColumnIfMissing(SQLiteDatabase db, String columnName, String columnDefinition) {
+        if (!tableExists(db, TABLE_SCORES)) {
+            ensureScoresTableExists(db);
+        }
         if (!columnExists(db, TABLE_SCORES, columnName)) {
             db.execSQL("ALTER TABLE " + TABLE_SCORES + " ADD COLUMN " + columnName + " " + columnDefinition);
         }
     }
 
     private void copyColumnIfExists(SQLiteDatabase db, String sourceColumn, String destinationColumn) {
+        if (!tableExists(db, TABLE_SCORES)) {
+            ensureScoresTableExists(db);
+        }
         if (columnExists(db, TABLE_SCORES, sourceColumn) && columnExists(db, TABLE_SCORES, destinationColumn)) {
             db.execSQL("UPDATE " + TABLE_SCORES + " SET " + destinationColumn + " = " + sourceColumn
                     + " WHERE " + destinationColumn + " IS NULL OR TRIM(" + destinationColumn + ") = ''");
@@ -108,8 +121,33 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
         return exists;
     }
 
+    private boolean tableExists(SQLiteDatabase db, String tableName) {
+        boolean exists = false;
+        try (Cursor cursor = db.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                new String[]{tableName}
+        )) {
+            exists = cursor != null && cursor.moveToFirst();
+        }
+        return exists;
+    }
+
+    private void ensureScoresTableExists(SQLiteDatabase db) {
+        if (!tableExists(db, TABLE_SCORES)) {
+            db.execSQL(SQL_CREATE);
+            ensureNicknameIndex(db);
+        }
+    }
+
+    private void ensureNicknameIndex(SQLiteDatabase db) {
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_scores_nickname ON "
+                + TABLE_SCORES + "(" + COLUMN_NICKNAME + ")");
+    }
+
     public long upsertScore(String nickname, long totalDurationMillis, long totalMoves, int levelReached) {
         SQLiteDatabase db = getWritableDatabase();
+        ensureScoresTableExists(db);
+        ensureNicknameIndex(db);
         ScoreEntry existing = findScoreByNickname(nickname);
         long now = System.currentTimeMillis();
         if (existing == null) {
@@ -153,6 +191,7 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
     private List<ScoreEntry> queryScores(String selection, String[] selectionArgs) {
         List<ScoreEntry> scores = new ArrayList<>();
         SQLiteDatabase db = getReadableDatabase();
+        ensureScoresTableExists(db);
         try (Cursor cursor = db.query(
                 TABLE_SCORES,
                 null,
@@ -182,6 +221,7 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
             return null;
         }
         SQLiteDatabase db = getReadableDatabase();
+        ensureScoresTableExists(db);
         try (Cursor cursor = db.query(
                 TABLE_SCORES,
                 null,
