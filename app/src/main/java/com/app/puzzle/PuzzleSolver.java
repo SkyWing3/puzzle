@@ -1,27 +1,33 @@
 package com.app.puzzle;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.PriorityQueue;
 
 /**
- * Resolves sliding puzzles using a breadth-first search to guarantee the
+ * Resolves sliding puzzles using the A* search algorithm to obtain the
  * minimal number of moves between a given arrangement and the solved state.
  */
 final class PuzzleSolver {
 
-    private static final class Node {
+    private static final class Node implements Comparable<Node> {
         final String key;
         final int blankIndex;
+        final int costFromStart;
+        final int estimatedTotalCost;
 
-        Node(String key, int blankIndex) {
+        Node(String key, int blankIndex, int costFromStart, int estimatedTotalCost) {
             this.key = key;
             this.blankIndex = blankIndex;
+            this.costFromStart = costFromStart;
+            this.estimatedTotalCost = estimatedTotalCost;
+        }
+
+        @Override
+        public int compareTo(Node other) {
+            return Integer.compare(this.estimatedTotalCost, other.estimatedTotalCost);
         }
     }
 
@@ -57,15 +63,20 @@ final class PuzzleSolver {
 
         int startBlank = locateBlank(start);
 
-        Deque<Node> queue = new ArrayDeque<>();
         Map<String, Step> backtrack = new HashMap<>();
-        Set<String> visited = new HashSet<>();
+        Map<String, Integer> gScores = new HashMap<>();
+        PriorityQueue<Node> openSet = new PriorityQueue<>();
 
-        queue.add(new Node(startKey, startBlank));
-        visited.add(startKey);
+        int initialHeuristic = manhattanDistance(startKey.toCharArray());
+        openSet.add(new Node(startKey, startBlank, 0, initialHeuristic));
+        gScores.put(startKey, 0);
 
-        while (!queue.isEmpty()) {
-            Node current = queue.removeFirst();
+        while (!openSet.isEmpty()) {
+            Node current = openSet.poll();
+            int recordedCost = gScores.getOrDefault(current.key, Integer.MAX_VALUE);
+            if (current.costFromStart > recordedCost) {
+                continue;
+            }
             if (current.key.equals(goalKey)) {
                 return reconstruct(backtrack, current.key);
             }
@@ -77,12 +88,15 @@ final class PuzzleSolver {
                 next[current.blankIndex] = movedTile;
                 next[neighbor] = charForValue(blankValue);
                 String nextKey = new String(next);
-                if (visited.contains(nextKey)) {
+                int tentativeG = current.costFromStart + 1;
+                int bestKnown = gScores.getOrDefault(nextKey, Integer.MAX_VALUE);
+                if (tentativeG >= bestKnown) {
                     continue;
                 }
-                visited.add(nextKey);
+                gScores.put(nextKey, tentativeG);
                 backtrack.put(nextKey, new Step(current.key, movedTile));
-                queue.addLast(new Node(nextKey, neighbor));
+                int heuristic = manhattanDistance(next);
+                openSet.add(new Node(nextKey, neighbor, tentativeG, tentativeG + heuristic));
             }
         }
 
@@ -133,6 +147,22 @@ final class PuzzleSolver {
             chars[i] = charForValue(state[i]);
         }
         return new String(chars);
+    }
+
+    private int manhattanDistance(char[] state) {
+        int distance = 0;
+        for (int index = 0; index < state.length; index++) {
+            int value = valueFromChar(state[index]);
+            if (value == blankValue) {
+                continue;
+            }
+            int currentRow = index / dimension;
+            int currentCol = index % dimension;
+            int goalRow = value / dimension;
+            int goalCol = value % dimension;
+            distance += Math.abs(currentRow - goalRow) + Math.abs(currentCol - goalCol);
+        }
+        return distance;
     }
 
     private String buildGoalKey() {
