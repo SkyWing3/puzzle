@@ -8,31 +8,32 @@
     tools:context=".RankingActivity">
 
     <ImageView
-        android:id="@+id/rankingDecorCat"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
+        android:id="@+id/rankingDecorTopPaw"
+        android:layout_width="88dp"
+        android:layout_height="88dp"
+        android:alpha="0.2"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        android:rotation="18"
+        android:src="@drawable/ic_paw"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginEnd="-24dp"
+        android:layout_marginTop="-16dp" />
+
+    <ImageView
+        android:id="@+id/rankingDecorBottomCat"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:alpha="0.18"
         android:contentDescription="@null"
         android:importantForAccessibility="no"
         android:scaleType="centerInside"
         android:src="@drawable/ic_cat_face"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginEnd="-12dp"
-        android:layout_marginTop="-8dp" />
-
-    <ImageView
-        android:id="@+id/rankingDecorPaw"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
-        android:alpha="0.2"
-        android:contentDescription="@null"
-        android:importantForAccessibility="no"
-        android:rotation="-25"
-        android:src="@drawable/ic_paw"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginStart="-8dp"
-        android:layout_marginTop="32dp" />
+        android:layout_marginStart="-12dp"
+        android:layout_marginBottom="-12dp" />
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/rankingToolbar"
@@ -53,80 +54,177 @@
         app:titleCentered="true"
         app:titleTextColor="@color/on_toolbar" />
 
-    <TextView
-        android:id="@+id/rankingTagline"
-        style="@style/Widget.Puzzle.Tagline"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/rankingSummaryCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/screen_margin"
-        android:layout_marginTop="@dimen/spacing_large"
+        android:layout_marginTop="@dimen/spacing_extra_large"
         android:layout_marginEnd="@dimen/screen_margin"
-        android:background="@drawable/bg_status_message"
-        android:gravity="center"
-        android:paddingStart="@dimen/board_inner_padding"
-        android:paddingTop="@dimen/spacing_medium"
-        android:paddingEnd="@dimen/board_inner_padding"
-        android:paddingBottom="@dimen/spacing_medium"
-        android:text="@string/ranking_tagline"
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardCornerRadius="0dp"
+        app:cardElevation="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/rankingToolbar" />
+        app:layout_constraintTop_toBottomOf="@id/rankingToolbar">
 
-    <androidx.appcompat.widget.SearchView
-        android:id="@+id/searchView"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/screen_margin"
-        android:layout_marginTop="@dimen/spacing_large"
-        android:layout_marginEnd="@dimen/screen_margin"
-        android:background="@drawable/bg_search_field"
-        android:iconifiedByDefault="false"
-        android:imeOptions="actionSearch"
-        android:paddingStart="@dimen/spacing_large"
-        android:paddingEnd="@dimen/spacing_large"
-        android:queryHint="@string/search_hint"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/rankingTagline" />
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_instruction_card"
+            android:paddingStart="@dimen/board_inner_padding"
+            android:paddingTop="@dimen/spacing_large"
+            android:paddingEnd="@dimen/board_inner_padding"
+            android:paddingBottom="@dimen/spacing_large">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rankingList"
+            <ImageView
+                android:id="@+id/rankingHeroIcon"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:contentDescription="@null"
+                android:importantForAccessibility="no"
+                android:padding="12dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_cat_face"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:ignore="ContentDescription" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/rankingHeroIcon"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginEnd="@dimen/spacing_large">
+
+                <TextView
+                    android:id="@+id/rankingTagline"
+                    style="@style/Widget.Puzzle.Tagline"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@null"
+                    android:text="@string/ranking_tagline"
+                    android:textAlignment="viewStart" />
+
+                <TextView
+                    style="@style/Widget.Puzzle.Body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_medium"
+                    android:text="@string/ranking_intro_message"
+                    android:textAlignment="viewStart" />
+
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/rankingListCard"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="@dimen/screen_margin"
         android:layout_marginTop="@dimen/spacing_extra_large"
         android:layout_marginEnd="@dimen/screen_margin"
-        android:layout_marginBottom="@dimen/screen_margin"
-        android:clipToPadding="false"
-        android:paddingBottom="@dimen/spacing_extra_large"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="@dimen/spacing_large"
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardCornerRadius="0dp"
+        app:cardElevation="0dp"
+        app:layout_constraintBottom_toTopOf="@id/searchCard"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/searchView"
-        tools:listitem="@layout/item_ranking" />
+        app:layout_constraintTop_toBottomOf="@id/rankingSummaryCard">
 
-    <TextView
-        android:id="@+id/emptyView"
-        style="@style/Widget.Puzzle.Body"
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_ranking_card"
+            android:padding="@dimen/board_inner_padding">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rankingList"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="@dimen/spacing_extra_large"
+                tools:listitem="@layout/item_ranking" />
+
+            <TextView
+                android:id="@+id/emptyView"
+                style="@style/Widget.Puzzle.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_status_message"
+                android:drawableStart="@drawable/ic_paw"
+                android:drawablePadding="@dimen/spacing_medium"
+                android:gravity="center_vertical"
+                android:paddingStart="@dimen/board_inner_padding"
+                android:paddingTop="@dimen/spacing_large"
+                android:paddingEnd="@dimen/board_inner_padding"
+                android:paddingBottom="@dimen/spacing_large"
+                android:text="@string/ranking_empty"
+                android:textAlignment="center"
+                android:textColor="@color/status_message_text"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+        </FrameLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/searchCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/screen_margin"
-        android:layout_marginTop="@dimen/spacing_extra_large"
         android:layout_marginEnd="@dimen/screen_margin"
-        android:background="@drawable/bg_status_message"
-        android:drawableStart="@drawable/ic_paw"
-        android:drawablePadding="@dimen/spacing_medium"
-        android:gravity="center_vertical"
-        android:paddingStart="@dimen/board_inner_padding"
-        android:paddingTop="@dimen/spacing_large"
-        android:paddingEnd="@dimen/board_inner_padding"
-        android:paddingBottom="@dimen/spacing_large"
-        android:text="@string/ranking_empty"
-        android:textAlignment="viewStart"
-        android:textColor="@color/status_message_text"
+        android:layout_marginBottom="@dimen/screen_margin"
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardCornerRadius="0dp"
+        app:cardElevation="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/searchView"
-        tools:visibility="gone" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_instruction_card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/board_inner_padding"
+            android:paddingTop="@dimen/spacing_medium"
+            android:paddingEnd="@dimen/board_inner_padding"
+            android:paddingBottom="@dimen/spacing_medium">
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@null"
+                android:importantForAccessibility="no"
+                android:padding="8dp"
+                android:src="@drawable/ic_sparkle" />
+
+            <androidx.appcompat.widget.SearchView
+                android:id="@+id/searchView"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_medium"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:iconifiedByDefault="false"
+                android:imeOptions="actionSearch"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:queryHint="@string/search_hint" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
