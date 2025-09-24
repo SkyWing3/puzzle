@@ -38,6 +38,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.app.puzzle.data.ScoreDatabaseHelper;
+import com.app.puzzle.data.ScoreEntry;
 import com.app.puzzle.solver.PuzzleSolver;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
@@ -396,32 +397,23 @@ public class MainActivity extends AppCompatActivity {
             Snackbar.make(rootView, R.string.auto_solve_not_ranked, Snackbar.LENGTH_SHORT).show();
             return;
         }
-        if (savedNickname == null || savedNickname.trim().isEmpty()) {
-            showNicknameDialog(elapsedMillis, nickname -> {
-                savedNickname = nickname;
-                accumulatedDurationMillis = prospectiveDuration;
-                accumulatedMoveCount = prospectiveMoves;
-                persistProgress();
-                long result = databaseHelper.upsertScore(savedNickname, accumulatedDurationMillis, accumulatedMoveCount, currentLevel);
-                if (result == -1) {
-                    Snackbar.make(rootView, R.string.error_saving_score, Snackbar.LENGTH_SHORT).show();
-                } else {
-                    Snackbar.make(rootView, R.string.score_saved, Snackbar.LENGTH_SHORT).show();
-                }
-                showCompletionDialog(false, elapsedMillis, accumulatedDurationMillis);
-            });
-        } else {
+        showNicknameDialog(elapsedMillis, savedNickname, nickname -> {
+            savedNickname = nickname;
+            ScoreEntry existingScore = databaseHelper != null ? databaseHelper.findScoreByNickname(nickname) : null;
             accumulatedDurationMillis = prospectiveDuration;
             accumulatedMoveCount = prospectiveMoves;
             persistProgress();
-            long result = databaseHelper.upsertScore(savedNickname, accumulatedDurationMillis, accumulatedMoveCount, currentLevel);
+            long result = databaseHelper != null
+                    ? databaseHelper.upsertScore(existingScore, savedNickname, accumulatedDurationMillis, accumulatedMoveCount, currentLevel)
+                    : -1;
             if (result == -1) {
                 Snackbar.make(rootView, R.string.error_saving_score, Snackbar.LENGTH_SHORT).show();
             } else {
-                Snackbar.make(rootView, R.string.score_updated, Snackbar.LENGTH_SHORT).show();
+                int messageRes = existingScore == null ? R.string.score_saved : R.string.score_updated;
+                Snackbar.make(rootView, messageRes, Snackbar.LENGTH_SHORT).show();
             }
             showCompletionDialog(false, elapsedMillis, accumulatedDurationMillis);
-        }
+        });
     }
 
     private void showCompletionDialog(boolean autoSolved, long levelDurationMillis, long totalDurationMillis) {
@@ -652,9 +644,17 @@ public class MainActivity extends AppCompatActivity {
         updateTilesAppearance();
     }
 
-    private void showNicknameDialog(long elapsedMillis, NicknameCallback callback) {
+    private void showNicknameDialog(long elapsedMillis, String initialNickname, NicknameCallback callback) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_nickname, null);
         TextInputEditText nicknameInput = dialogView.findViewById(R.id.nicknameInput);
+        if (initialNickname != null) {
+            String trimmedNickname = initialNickname.trim();
+            if (!trimmedNickname.isEmpty()) {
+                nicknameInput.setText(trimmedNickname);
+                nicknameInput.setSelection(trimmedNickname.length());
+            }
+        }
+        nicknameInput.requestFocus();
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.dialog_title_nickname)
