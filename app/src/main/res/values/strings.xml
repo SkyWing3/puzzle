@@ -4,6 +4,8 @@
     <string name="puzzle_instructions">Arrastra las fichas hacia el espacio vacío para ordenarlas de la A a la H o convierte tus fotos en un nuevo rompecabezas.</string>
     <string name="move_counter_placeholder">Movimientos: 0</string>
     <string name="move_counter">Movimientos: %1$d</string>
+    <string name="time_counter_placeholder">Tiempo: 00:00</string>
+    <string name="time_counter">Tiempo: %1$s</string>
     <string name="shuffle">Reiniciar tablero</string>
     <string name="status_ready">Ordena las fichas para formar la secuencia correcta.</string>
     <string name="status_keep_going">Sigue moviendo las fichas para completar el tablero.</string>
@@ -18,4 +20,18 @@
     <string name="reference_image_description">Imagen de referencia del rompecabezas</string>
     <string name="error_loading_image">No se pudo cargar la imagen. Intenta nuevamente.</string>
     <string name="error_camera_permission">Activa los permisos de cámara para tomar una foto.</string>
+    <string name="error_saving_score">No se pudo guardar el tiempo. Intenta otra vez.</string>
+    <string name="dialog_title_nickname">Nuevo registro</string>
+    <string name="dialog_message_nickname">Resolviste el rompecabezas en %1$s. Ingresa tu apodo para el ranking.</string>
+    <string name="hint_nickname">Apodo</string>
+    <string name="action_save_score">Guardar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="error_empty_nickname">Escribe un apodo para continuar.</string>
+    <string name="score_saved">¡Tu tiempo quedó registrado!</string>
+    <string name="menu_ranking">Ranking</string>
+    <string name="ranking_title">Ranking de jugadores</string>
+    <string name="search_hint">Buscar apodo</string>
+    <string name="ranking_empty">Aún no hay tiempos guardados. ¡Sé el primero!</string>
+    <string name="ranking_time_label">%1$s</string>
+    <string name="ranking_date_label">Registrado el %1$s</string>
 </resources>

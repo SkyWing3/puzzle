@@ -2,39 +2,53 @@ package com.app.puzzle;
 
 import android.Manifest;
 import android.content.ClipData;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.ImageDecoder;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import android.view.DragEvent;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Button;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.app.puzzle.data.ScoreDatabaseHelper;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -50,16 +64,36 @@ public class MainActivity extends AppCompatActivity {
 
     private GridLayout puzzleGrid;
     private TextView moveCounterView;
+    private TextView timeCounterView;
     private TextView statusMessageView;
     private ImageView referenceImageView;
     private MaterialCardView referenceCard;
     private View rootView;
     private int moveCounter = 0;
     private boolean imageMode = false;
+    private boolean puzzleSolved = false;
 
     private ActivityResultLauncher<PickVisualMediaRequest> pickImageLauncher;
     private ActivityResultLauncher<Void> captureImageLauncher;
     private ActivityResultLauncher<String> cameraPermissionLauncher;
+
+    private final Handler timerHandler = new Handler(Looper.getMainLooper());
+    private long startTimeMillis = 0L;
+    private boolean timerRunning = false;
+
+    private final Runnable timerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!timerRunning) {
+                return;
+            }
+            long elapsed = SystemClock.elapsedRealtime() - startTimeMillis;
+            updateTimerText(elapsed);
+            timerHandler.postDelayed(this, 1000);
+        }
+    };
+
+    private ScoreDatabaseHelper databaseHelper;
 
     private final View.OnTouchListener touchListener = (v, event) -> {
         if (event.getAction() != MotionEvent.ACTION_DOWN) {
@@ -149,11 +183,14 @@ public class MainActivity extends AppCompatActivity {
 
         puzzleGrid = findViewById(R.id.puzzleGrid);
         moveCounterView = findViewById(R.id.moveCounter);
+        timeCounterView = findViewById(R.id.timeCounter);
         statusMessageView = findViewById(R.id.statusMessage);
         referenceCard = findViewById(R.id.referenceCard);
         referenceImageView = findViewById(R.id.referenceImage);
         MaterialButton pickImageButton = findViewById(R.id.pickImageButton);
         MaterialButton captureImageButton = findViewById(R.id.captureImageButton);
+
+        databaseHelper = new ScoreDatabaseHelper(this);
 
         prepareTiles();
 
@@ -186,6 +223,8 @@ public class MainActivity extends AppCompatActivity {
         applyBoard(board);
         moveCounter = 0;
         updateMoveCounter();
+        puzzleSolved = false;
+        startNewTimer();
         statusMessageView.setText(imageMode ? R.string.status_ready_image : R.string.status_ready);
         referenceCard.setVisibility(imageMode ? View.VISIBLE : View.GONE);
     }
@@ -194,7 +233,12 @@ public class MainActivity extends AppCompatActivity {
         moveCounter++;
         updateMoveCounter();
         if (isSolved(currentBoard)) {
-            statusMessageView.setText(R.string.puzzle_solved);
+            if (!puzzleSolved) {
+                puzzleSolved = true;
+                long elapsed = stopTimer();
+                statusMessageView.setText(R.string.puzzle_solved);
+                showNicknameDialog(elapsed);
+            }
         } else {
             statusMessageView.setText(imageMode ? R.string.status_keep_going_image : R.string.status_keep_going);
         }
@@ -203,6 +247,34 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateMoveCounter() {
         moveCounterView.setText(getString(R.string.move_counter, moveCounter));
+    }
+
+    private void startNewTimer() {
+        timerHandler.removeCallbacks(timerRunnable);
+        startTimeMillis = SystemClock.elapsedRealtime();
+        timerRunning = true;
+        updateTimerText(0);
+        timerHandler.postDelayed(timerRunnable, 1000);
+    }
+
+    private long stopTimer() {
+        long elapsed = SystemClock.elapsedRealtime() - startTimeMillis;
+        timerRunning = false;
+        timerHandler.removeCallbacks(timerRunnable);
+        updateTimerText(elapsed);
+        return elapsed;
+    }
+
+    private void updateTimerText(long elapsedMillis) {
+        if (timeCounterView != null) {
+            timeCounterView.setText(getString(R.string.time_counter, formatDuration(elapsedMillis)));
+        }
+    }
+
+    private String formatDuration(long durationMillis) {
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(durationMillis);
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(durationMillis) - TimeUnit.MINUTES.toSeconds(minutes);
+        return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
     }
 
     private void applyBoard(List<Integer> board) {
@@ -305,6 +377,41 @@ public class MainActivity extends AppCompatActivity {
         updateTilesAppearance();
     }
 
+    private void showNicknameDialog(long elapsedMillis) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_nickname, null);
+        TextInputEditText nicknameInput = dialogView.findViewById(R.id.nicknameInput);
+
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_title_nickname)
+                .setMessage(getString(R.string.dialog_message_nickname, formatDuration(elapsedMillis)))
+                .setView(dialogView)
+                .setNegativeButton(R.string.action_cancel, (dialog, which) -> dialog.dismiss())
+                .setPositiveButton(R.string.action_save_score, null);
+
+        AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(dialogInterface -> {
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setOnClickListener(v -> {
+                String nickname = nicknameInput.getText() != null
+                        ? nicknameInput.getText().toString().trim()
+                        : "";
+                if (nickname.isEmpty()) {
+                    nicknameInput.setError(getString(R.string.error_empty_nickname));
+                    return;
+                }
+                nicknameInput.setError(null);
+                long result = databaseHelper.insertScore(nickname, elapsedMillis);
+                if (result == -1) {
+                    Snackbar.make(rootView, R.string.error_saving_score, Snackbar.LENGTH_SHORT).show();
+                } else {
+                    Snackbar.make(rootView, R.string.score_saved, Snackbar.LENGTH_SHORT).show();
+                }
+                dialog.dismiss();
+            });
+        });
+        dialog.show();
+    }
+
     private void registerActivityLaunchers() {
         pickImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.PickVisualMedia(),
@@ -334,6 +441,21 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
         );
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.action_ranking) {
+            startActivity(new Intent(this, RankingActivity.class));
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     private void launchImagePicker() {
@@ -435,6 +557,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        timerHandler.removeCallbacks(timerRunnable);
+        if (databaseHelper != null) {
+            databaseHelper.close();
+        }
         releaseCurrentImageTiles();
         currentImageTiles.clear();
     }

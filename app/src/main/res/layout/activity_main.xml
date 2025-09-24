@@ -129,6 +129,13 @@
         app:layout_constraintTop_toBottomOf="@id/boardCard">
 
         <TextView
+            android:id="@+id/timeCounter"
+            style="@style/Widget.Puzzle.Counter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/time_counter_placeholder" />
+
+        <TextView
             android:id="@+id/moveCounter"
             style="@style/Widget.Puzzle.Counter"
             android:layout_width="wrap_content"
