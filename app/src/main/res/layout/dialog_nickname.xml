@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.textfield.TextInputLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:hint="@string/hint_nickname">
+    android:hint="@string/hint_nickname"
+    app:boxBackgroundColor="@color/stat_card_background"
+    app:boxCornerRadiusTopStart="18dp"
+    app:boxCornerRadiusTopEnd="18dp"
+    app:boxCornerRadiusBottomStart="18dp"
+    app:boxCornerRadiusBottomEnd="18dp"
+    app:boxStrokeColor="@color/search_stroke"
+    app:boxStrokeWidthFocused="2dp">
 
     <com.google.android.material.textfield.TextInputEditText
         android:id="@+id/nicknameInput"

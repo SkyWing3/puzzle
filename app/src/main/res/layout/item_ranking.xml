@@ -4,67 +4,77 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="@dimen/spacing_medium"
-    app:cardBackgroundColor="@color/board_background"
+    app:cardBackgroundColor="@color/ranking_card_background"
     app:cardCornerRadius="@dimen/board_corner_radius"
-    app:cardElevation="@dimen/board_elevation">
+    app:cardElevation="8dp"
+    app:strokeColor="@color/search_stroke"
+    app:strokeWidth="1dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="@dimen/board_inner_padding">
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/board_inner_padding">
 
         <TextView
             android:id="@+id/positionView"
-            style="@style/Widget.Puzzle.Counter"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:gravity="center_vertical"
+            android:layout_width="@dimen/badge_size"
+            android:layout_height="@dimen/badge_size"
+            android:background="@drawable/bg_position_badge"
+            android:gravity="center"
             android:text="1"
-            android:textAlignment="center"
-            android:textSize="20sp" />
+            android:textColor="@color/ranking_badge_text"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/spacing_medium"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:layout_marginStart="@dimen/spacing_large"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/positionView"
+            app:layout_constraintTop_toTopOf="parent">
 
             <TextView
                 android:id="@+id/nicknameView"
-                style="@style/Widget.Puzzle.Body"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="Jugador"
                 android:textColor="@color/tile_text"
-                android:textStyle="bold"
-                android:text="Jugador" />
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/timeView"
                 style="@style/Widget.Puzzle.Status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/tile_text"
-                android:text="00:45" />
+                android:layout_marginTop="@dimen/spacing_small"
+                android:text="00:45"
+                android:textColor="@color/tile_text" />
 
             <TextView
                 android:id="@+id/levelView"
                 style="@style/Widget.Puzzle.Status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/tile_text"
-                android:text="Nivel 1" />
+                android:text="Nivel 1"
+                android:textColor="@color/tile_text" />
 
             <TextView
                 android:id="@+id/dateView"
                 style="@style/Widget.Puzzle.Caption"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/tile_text"
-                android:text="Registrado el 01/01/2024" />
+                android:text="Registrado el 01/01/2024"
+                android:textColor="@color/status_text" />
+
         </LinearLayout>
 
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>

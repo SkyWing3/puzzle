@@ -2,10 +2,10 @@
     <string name="app_name">Puzzle Maestro</string>
     <string name="toolbar_title">Rompecabezas deslizante</string>
     <string name="puzzle_instructions">Arrastra las fichas hacia el espacio vacío para ordenarlas en orden ascendente o convierte tus fotos en un nuevo rompecabezas.</string>
-    <string name="move_counter_placeholder">Movimientos: 0</string>
-    <string name="move_counter">Movimientos: %1$d</string>
-    <string name="time_counter_placeholder">Tiempo: 00:00</string>
-    <string name="time_counter">Tiempo: %1$s</string>
+    <string name="move_counter_placeholder">0</string>
+    <string name="move_counter">%1$d</string>
+    <string name="time_counter_placeholder">00:00</string>
+    <string name="time_counter">%1$s</string>
     <string name="shuffle">Reiniciar partida</string>
     <string name="status_ready_level">Ordena las fichas para superar el nivel actual.</string>
     <string name="status_keep_going_level">Sigue moviendo las fichas para completar este nivel.</string>
@@ -51,4 +51,8 @@
     <string name="action_next_level">Siguiente nivel</string>
     <string name="level_indicator">Nivel %1$d · %2$dx%2$d</string>
     <string name="level_indicator_placeholder">Nivel 1 · 3x3</string>
+    <string name="label_time">Tiempo</string>
+    <string name="label_moves">Movimientos</string>
+    <string name="label_status">Estado</string>
+    <string name="label_reference">Referencia visual</string>
 </resources>
