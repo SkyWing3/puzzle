@@ -8,11 +8,11 @@
     app:cardCornerRadius="@dimen/board_corner_radius"
     app:cardElevation="@dimen/board_elevation">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="@dimen/board_inner_padding">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="@dimen/board_inner_padding">
 
         <TextView
             android:id="@+id/positionView"
@@ -36,6 +36,7 @@
                 style="@style/Widget.Puzzle.Body"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/tile_text"
                 android:textStyle="bold"
                 android:text="Jugador" />
 
@@ -44,6 +45,7 @@
                 style="@style/Widget.Puzzle.Status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/tile_text"
                 android:text="00:45" />
 
             <TextView
@@ -51,6 +53,7 @@
                 style="@style/Widget.Puzzle.Status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/tile_text"
                 android:text="Nivel 1" />
 
             <TextView
@@ -58,6 +61,7 @@
                 style="@style/Widget.Puzzle.Caption"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/tile_text"
                 android:text="Registrado el 01/01/2024" />
         </LinearLayout>
 
