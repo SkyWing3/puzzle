@@ -12,7 +12,7 @@ import java.util.List;
 public class ScoreDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "puzzle_scores.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     public static final String TABLE_SCORES = "scores";
     public static final String COLUMN_ID = "_id";
@@ -39,8 +39,42 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_SCORES);
-        onCreate(db);
+        if (oldVersion < 2) {
+            addColumnIfMissing(db, COLUMN_DURATION, "INTEGER NOT NULL DEFAULT 0");
+            addColumnIfMissing(db, COLUMN_CREATED_AT, "INTEGER NOT NULL DEFAULT 0");
+        }
+    }
+
+    @Override
+    public void onOpen(SQLiteDatabase db) {
+        super.onOpen(db);
+        addColumnIfMissing(db, COLUMN_DURATION, "INTEGER NOT NULL DEFAULT 0");
+        addColumnIfMissing(db, COLUMN_CREATED_AT, "INTEGER NOT NULL DEFAULT 0");
+    }
+
+    private void addColumnIfMissing(SQLiteDatabase db, String columnName, String columnDefinition) {
+        if (!columnExists(db, TABLE_SCORES, columnName)) {
+            db.execSQL("ALTER TABLE " + TABLE_SCORES + " ADD COLUMN " + columnName + " " + columnDefinition);
+        }
+    }
+
+    private boolean columnExists(SQLiteDatabase db, String tableName, String columnName) {
+        boolean exists = false;
+        try (Cursor cursor = db.rawQuery(
+                "PRAGMA table_info(" + tableName + ")",
+                null
+        )) {
+            if (cursor != null) {
+                int nameIndex = cursor.getColumnIndex("name");
+                while (cursor.moveToNext()) {
+                    if (columnName.equalsIgnoreCase(cursor.getString(nameIndex))) {
+                        exists = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return exists;
     }
 
     public long insertScore(String nickname, long durationMillis) {
