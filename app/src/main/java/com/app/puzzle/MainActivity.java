@@ -89,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean autoSolving = false;
     private List<Integer> pendingAutoSolveMoves;
     private int autoSolveStepIndex = 0;
+    private boolean timerStarted = false;
 
     private final Runnable timerRunnable = new Runnable() {
         @Override
@@ -280,6 +281,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleSuccessfulMove() {
+        startTimerIfNeeded();
         moveCounter++;
         updateMoveCounter();
         if (isSolved(currentBoard)) {
@@ -301,13 +303,30 @@ public class MainActivity extends AppCompatActivity {
 
     private void startNewTimer() {
         timerHandler.removeCallbacks(timerRunnable);
-        startTimeMillis = SystemClock.elapsedRealtime();
-        timerRunning = true;
+        startTimeMillis = 0L;
+        timerStarted = false;
+        timerRunning = false;
         updateTimerText(0);
+    }
+
+    private void startTimerIfNeeded() {
+        if (timerStarted && timerRunning) {
+            return;
+        }
+        startTimeMillis = SystemClock.elapsedRealtime();
+        timerStarted = true;
+        timerRunning = true;
+        timerHandler.removeCallbacks(timerRunnable);
         timerHandler.postDelayed(timerRunnable, 1000);
     }
 
     private long stopTimer() {
+        if (!timerStarted) {
+            timerRunning = false;
+            timerHandler.removeCallbacks(timerRunnable);
+            updateTimerText(0);
+            return 0L;
+        }
         long elapsed = SystemClock.elapsedRealtime() - startTimeMillis;
         timerRunning = false;
         timerHandler.removeCallbacks(timerRunnable);
