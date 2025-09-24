@@ -405,6 +405,19 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
+    private void showAutoSolveAdvanceDialog() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_title_auto_solve_complete)
+                .setMessage(R.string.dialog_message_auto_solve_complete)
+                .setPositiveButton(R.string.action_next_level, (dialog, which) -> {
+                    dialog.dismiss();
+                    advanceToNextLevel();
+                })
+                .setNegativeButton(R.string.action_cancel, (dialog, which) -> dialog.dismiss())
+                .setCancelable(false)
+                .show();
+    }
+
     private void advanceToNextLevel() {
         currentLevel++;
         imageMode = false;
@@ -706,6 +719,7 @@ public class MainActivity extends AppCompatActivity {
         }
         setInteractionControlsEnabled(true);
         updateTilesAppearance();
+        showAutoSolveAdvanceDialog();
     }
 
     private void finishAutoSolveFailure() {

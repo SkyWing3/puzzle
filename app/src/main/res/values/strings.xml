@@ -44,6 +44,8 @@
     <string name="auto_solve_in_progress">La resolución automática ya está en curso.</string>
     <string name="dialog_title_level_complete">Nivel %1$d completado</string>
     <string name="dialog_message_level_complete">Tiempo de este nivel: %1$s\nTiempo acumulado: %2$s</string>
+    <string name="dialog_title_auto_solve_complete">Nivel completado automáticamente</string>
+    <string name="dialog_message_auto_solve_complete">La solución automática completó el nivel. Tu tiempo no se registrará en el ranking, pero puedes continuar.</string>
     <string name="action_next_level">Siguiente nivel</string>
     <string name="level_indicator">Nivel %1$d · %2$dx%2$d</string>
     <string name="level_indicator_placeholder">Nivel 1 · 3x3</string>
