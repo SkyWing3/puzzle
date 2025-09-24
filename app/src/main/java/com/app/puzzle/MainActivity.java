@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_NICKNAME = "progress_nickname";
     private static final String KEY_TOTAL_DURATION = "progress_total_duration";
     private static final String KEY_TOTAL_MOVES = "progress_total_moves";
+    private static final String AUTO_SOLVE_NICKNAME = "IA";
 
     private final List<TextView> tiles = new ArrayList<>();
     private final List<Integer> currentBoard = new ArrayList<>();
@@ -393,8 +394,26 @@ public class MainActivity extends AppCompatActivity {
         final long prospectiveDuration = accumulatedDurationMillis + elapsedMillis;
         final long prospectiveMoves = accumulatedMoveCount + moveCounter;
         if (autoSolved) {
+            long aiDuration = elapsedMillis;
+            long aiMoves = moveCounter;
+            int aiLevel = currentLevel;
+            if (databaseHelper != null) {
+                ScoreEntry aiScore = databaseHelper.findScoreByNickname(AUTO_SOLVE_NICKNAME);
+                if (aiScore != null) {
+                    aiDuration += aiScore.getDurationMillis();
+                    aiMoves += aiScore.getMoveCount();
+                    aiLevel = Math.max(aiLevel, aiScore.getLevel());
+                }
+                long result = databaseHelper.upsertScore(aiScore, AUTO_SOLVE_NICKNAME, aiDuration, aiMoves, aiLevel);
+                if (result == -1) {
+                    Snackbar.make(rootView, R.string.error_saving_score, Snackbar.LENGTH_SHORT).show();
+                } else {
+                    Snackbar.make(rootView, R.string.auto_solve_ranked_as_ai, Snackbar.LENGTH_SHORT).show();
+                }
+            } else {
+                Snackbar.make(rootView, R.string.error_saving_score, Snackbar.LENGTH_SHORT).show();
+            }
             showCompletionDialog(true, elapsedMillis, prospectiveDuration);
-            Snackbar.make(rootView, R.string.auto_solve_not_ranked, Snackbar.LENGTH_SHORT).show();
             return;
         }
         showNicknameDialog(elapsedMillis, savedNickname, nickname -> {
