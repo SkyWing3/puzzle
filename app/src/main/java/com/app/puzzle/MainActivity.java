@@ -71,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView levelIndicatorView;
     private ImageView referenceImageView;
     private MaterialCardView referenceCard;
+    private MaterialCardView boardCard;
     private MaterialButton pickImageButton;
     private MaterialButton captureImageButton;
     private MaterialButton shuffleButton;
@@ -98,6 +99,8 @@ public class MainActivity extends AppCompatActivity {
     private List<Integer> pendingAutoSolveMoves;
     private int autoSolveStepIndex = 0;
     private boolean timerStarted = false;
+    private Bitmap referenceSourceBitmap;
+    private Bitmap scaledReferenceBitmap;
 
     private final Runnable timerRunnable = new Runnable() {
         @Override
@@ -244,6 +247,7 @@ public class MainActivity extends AppCompatActivity {
         statusMessageView = findViewById(R.id.statusMessage);
         levelIndicatorView = findViewById(R.id.levelIndicator);
         referenceCard = findViewById(R.id.referenceCard);
+        boardCard = findViewById(R.id.boardCard);
         referenceImageView = findViewById(R.id.referenceImage);
         pickImageButton = findViewById(R.id.pickImageButton);
         captureImageButton = findViewById(R.id.captureImageButton);
@@ -262,6 +266,13 @@ public class MainActivity extends AppCompatActivity {
         captureImageButton.setOnClickListener(v -> launchCamera());
 
         registerActivityLaunchers();
+        if (rootView != null) {
+            rootView.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                if ((right - left) != (oldRight - oldLeft)) {
+                    scheduleTileSizeUpdate();
+                }
+            });
+        }
         resetBoard();
     }
 
@@ -304,6 +315,7 @@ public class MainActivity extends AppCompatActivity {
             tiles.add(tile);
         }
         currentBoard.clear();
+        scheduleTileSizeUpdate();
     }
 
     private void updateLevelIndicator() {
@@ -327,6 +339,7 @@ public class MainActivity extends AppCompatActivity {
             autoSolveButton.setEnabled(true);
         }
         setInteractionControlsEnabled(true);
+        scheduleTileSizeUpdate();
     }
 
     private void handleSuccessfulMove() {
@@ -397,8 +410,7 @@ public class MainActivity extends AppCompatActivity {
         imageMode = false;
         referenceCard.setVisibility(View.GONE);
         referenceImageView.setImageDrawable(null);
-        releaseCurrentImageTiles();
-        currentImageTiles.clear();
+        releaseImageResources();
         persistProgress();
         configureForCurrentLevel();
         resetBoard();
@@ -789,12 +801,20 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         cancelAutoSolveIfRunning();
-        Bitmap preparedBitmap = prepareBitmap(bitmap);
-        sliceBitmapIntoTiles(preparedBitmap);
-        referenceImageView.setImageBitmap(preparedBitmap);
-        referenceCard.setVisibility(View.VISIBLE);
-        imageMode = true;
-        statusMessageView.setText(R.string.status_ready_image);
+        releaseImageResources();
+        referenceSourceBitmap = prepareBitmap(bitmap);
+        updateScaledReferenceBitmap();
+        if (scaledReferenceBitmap != null) {
+            sliceBitmapIntoTiles(scaledReferenceBitmap);
+            referenceImageView.setImageBitmap(scaledReferenceBitmap);
+            referenceCard.setVisibility(View.VISIBLE);
+            imageMode = true;
+        } else {
+            referenceImageView.setImageDrawable(null);
+            referenceCard.setVisibility(View.GONE);
+            imageMode = false;
+        }
+        statusMessageView.setText(imageMode ? R.string.status_ready_image : R.string.status_ready_level);
         resetBoard();
     }
 
@@ -802,19 +822,25 @@ public class MainActivity extends AppCompatActivity {
         int size = Math.min(original.getWidth(), original.getHeight());
         int xOffset = (original.getWidth() - size) / 2;
         int yOffset = (original.getHeight() - size) / 2;
-        Bitmap square = Bitmap.createBitmap(original, xOffset, yOffset, size, size);
-        int targetSize = getResources().getDimensionPixelSize(R.dimen.tile_size) * currentGridSize;
-        if (square.getWidth() != targetSize) {
-            return Bitmap.createScaledBitmap(square, targetSize, targetSize, true);
-        }
-        return square;
+        return Bitmap.createBitmap(original, xOffset, yOffset, size, size);
     }
 
     private void sliceBitmapIntoTiles(Bitmap bitmap) {
         clearTileForegrounds();
         releaseCurrentImageTiles();
         currentImageTiles.clear();
-        int tileSize = bitmap.getWidth() / currentGridSize;
+        if (bitmap == null) {
+            return;
+        }
+        Bitmap workingBitmap = bitmap;
+        int desiredTileSize = getDesiredTileSizePx();
+        if (desiredTileSize > 0) {
+            int targetSize = desiredTileSize * currentGridSize;
+            if (targetSize > 0 && bitmap.getWidth() != targetSize) {
+                workingBitmap = Bitmap.createScaledBitmap(bitmap, targetSize, targetSize, true);
+            }
+        }
+        int tileSize = workingBitmap.getWidth() / currentGridSize;
         for (int row = 0; row < currentGridSize; row++) {
             for (int col = 0; col < currentGridSize; col++) {
                 if (row == currentGridSize - 1 && col == currentGridSize - 1) {
@@ -823,7 +849,12 @@ public class MainActivity extends AppCompatActivity {
                 }
                 int left = col * tileSize;
                 int top = row * tileSize;
-                Bitmap tileBitmap = Bitmap.createBitmap(bitmap, left, top, tileSize, tileSize);
+                Bitmap tileBitmap = Bitmap.createBitmap(workingBitmap, left, top, tileSize, tileSize);
+                if (tileBitmap.getWidth() != desiredTileSize && desiredTileSize > 0) {
+                    Bitmap scaledTile = Bitmap.createScaledBitmap(tileBitmap, desiredTileSize, desiredTileSize, true);
+                    tileBitmap.recycle();
+                    tileBitmap = scaledTile;
+                }
                 currentImageTiles.add(tileBitmap);
             }
         }
@@ -847,6 +878,150 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void releaseScaledReferenceBitmap() {
+        if (scaledReferenceBitmap != null
+                && scaledReferenceBitmap != referenceSourceBitmap
+                && !scaledReferenceBitmap.isRecycled()) {
+            scaledReferenceBitmap.recycle();
+        }
+        scaledReferenceBitmap = null;
+    }
+
+    private void releaseReferenceSourceBitmap() {
+        if (referenceSourceBitmap != null && !referenceSourceBitmap.isRecycled()) {
+            referenceSourceBitmap.recycle();
+        }
+        referenceSourceBitmap = null;
+    }
+
+    private void releaseImageResources() {
+        clearTileForegrounds();
+        releaseCurrentImageTiles();
+        currentImageTiles.clear();
+        if (referenceImageView != null) {
+            referenceImageView.setImageDrawable(null);
+        }
+        releaseScaledReferenceBitmap();
+        releaseReferenceSourceBitmap();
+    }
+
+    private void updateScaledReferenceBitmap() {
+        if (referenceSourceBitmap == null) {
+            releaseScaledReferenceBitmap();
+            return;
+        }
+        int desiredTileSize = getDesiredTileSizePx();
+        int targetSize = desiredTileSize > 0
+                ? desiredTileSize * currentGridSize
+                : referenceSourceBitmap.getWidth();
+        if (targetSize <= 0) {
+            targetSize = referenceSourceBitmap.getWidth();
+        }
+        if (scaledReferenceBitmap != null
+                && !scaledReferenceBitmap.isRecycled()
+                && scaledReferenceBitmap.getWidth() == targetSize) {
+            return;
+        }
+        releaseScaledReferenceBitmap();
+        scaledReferenceBitmap = Bitmap.createScaledBitmap(referenceSourceBitmap, targetSize, targetSize, true);
+    }
+
+    private void scheduleTileSizeUpdate() {
+        if (puzzleGrid != null) {
+            puzzleGrid.post(this::updateTileSizes);
+        }
+    }
+
+    private void updateTileSizes() {
+        if (puzzleGrid == null || tiles.isEmpty()) {
+            return;
+        }
+        int tileSize = getDesiredTileSizePx();
+        if (tileSize <= 0) {
+            puzzleGrid.post(this::updateTileSizes);
+            return;
+        }
+        boolean updated = false;
+        for (TextView tile : tiles) {
+            GridLayout.LayoutParams params = (GridLayout.LayoutParams) tile.getLayoutParams();
+            if (params == null) {
+                params = new GridLayout.LayoutParams();
+            }
+            if (params.width != tileSize || params.height != tileSize) {
+                params.width = tileSize;
+                params.height = tileSize;
+                tile.setLayoutParams(params);
+                updated = true;
+            }
+        }
+        if (updated) {
+            puzzleGrid.requestLayout();
+            refreshImageTilesIfNeeded();
+        }
+    }
+
+    private void refreshImageTilesIfNeeded() {
+        if (!imageMode || referenceSourceBitmap == null) {
+            return;
+        }
+        updateScaledReferenceBitmap();
+        if (scaledReferenceBitmap == null || scaledReferenceBitmap.isRecycled()) {
+            return;
+        }
+        sliceBitmapIntoTiles(scaledReferenceBitmap);
+        if (!currentBoard.isEmpty()) {
+            applyBoard(new ArrayList<>(currentBoard));
+        }
+        if (referenceImageView != null) {
+            referenceImageView.setImageBitmap(scaledReferenceBitmap);
+        }
+    }
+
+    private int computeAvailableBoardWidth() {
+        int width = 0;
+        if (boardCard != null) {
+            width = boardCard.getWidth()
+                    - boardCard.getContentPaddingLeft()
+                    - boardCard.getContentPaddingRight();
+        }
+        if (width <= 0 && puzzleGrid != null) {
+            View parent = (View) puzzleGrid.getParent();
+            if (parent != null) {
+                width = parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight();
+            }
+        }
+        if (width <= 0 && puzzleGrid != null) {
+            width = puzzleGrid.getWidth();
+        }
+        if (width > 0 && puzzleGrid != null) {
+            width -= puzzleGrid.getPaddingLeft() + puzzleGrid.getPaddingRight();
+        }
+        if (width <= 0 && rootView != null) {
+            int margin = getResources().getDimensionPixelSize(R.dimen.screen_margin) * 2;
+            width = rootView.getWidth() - margin;
+        }
+        return width;
+    }
+
+    private int getDesiredTileSizePx() {
+        int availableWidth = computeAvailableBoardWidth();
+        int baseSize = getResources().getDimensionPixelSize(R.dimen.tile_size);
+        if (availableWidth <= 0 || currentGridSize <= 0) {
+            return baseSize;
+        }
+        int spacing = getResources().getDimensionPixelSize(R.dimen.tile_spacing);
+        int totalSpacing = spacing * 2 * currentGridSize;
+        int effectiveWidth = availableWidth - totalSpacing;
+        if (effectiveWidth <= 0) {
+            effectiveWidth = availableWidth;
+        }
+        int dynamicSize = effectiveWidth / currentGridSize;
+        if (dynamicSize <= 0) {
+            dynamicSize = Math.max(1, availableWidth / currentGridSize);
+        }
+        return Math.max(1, dynamicSize);
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -854,8 +1029,7 @@ public class MainActivity extends AppCompatActivity {
         if (databaseHelper != null) {
             databaseHelper.close();
         }
-        releaseCurrentImageTiles();
-        currentImageTiles.clear();
+        releaseImageResources();
         autoSolveHandler.removeCallbacksAndMessages(null);
     }
 }
