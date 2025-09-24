@@ -33,6 +33,7 @@
     <string name="ranking_title">Ranking de jugadores</string>
     <string name="search_hint">Buscar apodo</string>
     <string name="ranking_empty">Aún no hay tiempos guardados. ¡Sé el primero!</string>
+    <string name="ranking_empty_search">No se encontraron resultados para "%1$s".</string>
     <string name="ranking_time_label">Tiempo total: %1$s</string>
     <string name="ranking_level_label">Nivel alcanzado: %1$d</string>
     <string name="ranking_date_label">Registrado el %1$s</string>

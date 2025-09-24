@@ -228,11 +228,14 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
     }
 
     public List<ScoreEntry> searchScores(String query) {
-        if (query == null || query.trim().isEmpty()) {
+        String normalizedQuery = query == null ? "" : query.trim();
+        if (normalizedQuery.isEmpty()) {
             return getAllScores();
         }
-        String selection = COLUMN_NICKNAME + " LIKE ?";
-        String[] selectionArgs = new String[]{"%" + query.trim() + "%"};
+        String likeExpression = "%" + normalizedQuery + "%";
+        String selection = "(" + COLUMN_NICKNAME + " LIKE ? COLLATE NOCASE OR "
+                + COLUMN_PLAYER + " LIKE ? COLLATE NOCASE)";
+        String[] selectionArgs = new String[]{likeExpression, likeExpression};
         return queryScores(selection, selectionArgs);
     }
 
