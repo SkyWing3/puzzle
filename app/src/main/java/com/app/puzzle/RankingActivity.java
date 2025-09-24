@@ -1,6 +1,7 @@
 package com.app.puzzle;
 
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.TextView;
 
@@ -27,6 +28,8 @@ public class RankingActivity extends AppCompatActivity {
     private ScoreDatabaseHelper databaseHelper;
     private RankingAdapter adapter;
     private TextView emptyView;
+    private SearchView searchView;
+    private String currentQuery = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,11 +57,20 @@ public class RankingActivity extends AppCompatActivity {
 
         emptyView = findViewById(R.id.emptyView);
 
-        SearchView searchView = findViewById(R.id.searchView);
+        searchView = findViewById(R.id.searchView);
+        configureSearchView();
+
+        loadScores(null);
+    }
+
+    private void configureSearchView() {
+        searchView.setIconifiedByDefault(false);
+        searchView.clearFocus();
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
                 loadScores(query);
+                searchView.clearFocus();
                 return true;
             }
 
@@ -68,19 +80,35 @@ public class RankingActivity extends AppCompatActivity {
                 return true;
             }
         });
-
-        loadScores(null);
+        searchView.setOnCloseListener(() -> {
+            if (!TextUtils.isEmpty(currentQuery)) {
+                searchView.setQuery("", false);
+                loadScores(null);
+            }
+            return false;
+        });
     }
 
     private void loadScores(String query) {
-        List<ScoreEntry> scores = databaseHelper.searchScores(query);
+        String normalizedQuery = query == null ? "" : query.trim();
+        currentQuery = normalizedQuery;
+        List<ScoreEntry> scores = databaseHelper.searchScores(normalizedQuery);
         adapter.submitList(scores);
         updateEmptyState(scores);
     }
 
     private void updateEmptyState(List<ScoreEntry> scores) {
         boolean isEmpty = scores == null || scores.isEmpty();
-        emptyView.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
+        if (isEmpty) {
+            emptyView.setVisibility(View.VISIBLE);
+            if (TextUtils.isEmpty(currentQuery)) {
+                emptyView.setText(R.string.ranking_empty);
+            } else {
+                emptyView.setText(getString(R.string.ranking_empty_search, currentQuery));
+            }
+        } else {
+            emptyView.setVisibility(View.GONE);
+        }
     }
 
     private String formatDuration(long durationMillis) {

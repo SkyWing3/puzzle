@@ -30,6 +30,8 @@
         android:layout_marginStart="@dimen/screen_margin"
         android:layout_marginTop="@dimen/spacing_large"
         android:layout_marginEnd="@dimen/screen_margin"
+        android:iconifiedByDefault="false"
+        android:imeOptions="actionSearch"
         android:queryHint="@string/search_hint"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

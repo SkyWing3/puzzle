@@ -3,6 +3,7 @@ package com.app.puzzle.data;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
@@ -23,11 +24,13 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_DURATION = "duration";
     public static final String COLUMN_MOVES = "moves";
     public static final String COLUMN_CREATED_AT = "created_at";
+    private static final String LEGACY_COLUMN_TIMESTAMP = "timestamp";
     public static final String COLUMN_LEVEL = "level";
 
     private static final String TEMP_TABLE_NAME = TABLE_SCORES + "_new";
 
     private static final String SQL_CREATE = createTableSql(TABLE_SCORES);
+    private static final long SEED_TIME_OFFSET_INCREMENT = 60_000L;
 
     public ScoreDatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -74,6 +77,7 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
         ensureScoresTableExists(db);
         reconcileSchema(db);
         ensureNicknameIndex(db);
+        ensureSeedData(db);
     }
 
     private void reconcileSchema(SQLiteDatabase db) {
@@ -91,13 +95,15 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
                     existingColumns.add(cursor.getString(nameIndex));
                 }
             }
+            boolean hasLegacyTimestamp = existingColumns.contains(LEGACY_COLUMN_TIMESTAMP);
             if (!existingColumns.contains(COLUMN_ID)
                     || !existingColumns.contains(COLUMN_NICKNAME)
                     || !existingColumns.contains(COLUMN_PLAYER)
                     || !existingColumns.contains(COLUMN_DURATION)
                     || !existingColumns.contains(COLUMN_MOVES)
                     || !existingColumns.contains(COLUMN_LEVEL)
-                    || !existingColumns.contains(COLUMN_CREATED_AT)) {
+                    || !existingColumns.contains(COLUMN_CREATED_AT)
+                    || hasLegacyTimestamp) {
                 rebuildScoresTable(db, existingColumns);
             }
         } finally {
@@ -157,6 +163,8 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
         String expression;
         if (existingColumns.contains(columnName)) {
             expression = columnName;
+        } else if (COLUMN_CREATED_AT.equals(columnName) && existingColumns.contains(LEGACY_COLUMN_TIMESTAMP)) {
+            expression = LEGACY_COLUMN_TIMESTAMP;
         } else if (COLUMN_PLAYER.equals(columnName) && existingColumns.contains(COLUMN_NICKNAME)) {
             expression = COLUMN_NICKNAME;
         } else if (COLUMN_NICKNAME.equals(columnName) && existingColumns.contains(COLUMN_PLAYER)) {
@@ -182,6 +190,53 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
     private void ensureNicknameIndex(SQLiteDatabase db) {
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_scores_nickname ON "
                 + TABLE_SCORES + "(" + COLUMN_NICKNAME + ")");
+    }
+
+    private void ensureSeedData(SQLiteDatabase db) {
+        if (db == null) {
+            return;
+        }
+        long existingCount = DatabaseUtils.queryNumEntries(db, TABLE_SCORES);
+        if (existingCount > 0) {
+            return;
+        }
+
+        long baseTime = System.currentTimeMillis() - (SEED_SCORES.length * SEED_TIME_OFFSET_INCREMENT);
+        for (int i = 0; i < SEED_SCORES.length; i++) {
+            SeedScore seed = SEED_SCORES[i];
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_NICKNAME, seed.nickname);
+            values.put(COLUMN_PLAYER, seed.player);
+            values.put(COLUMN_DURATION, seed.durationMillis);
+            values.put(COLUMN_MOVES, seed.moveCount);
+            values.put(COLUMN_LEVEL, seed.level);
+            values.put(COLUMN_CREATED_AT, baseTime + (i * SEED_TIME_OFFSET_INCREMENT));
+            db.insert(TABLE_SCORES, null, values);
+        }
+    }
+
+    private static final SeedScore[] SEED_SCORES = new SeedScore[]{
+            new SeedScore("Ana", "Ana", 42_500L, 28, 1),
+            new SeedScore("Bruno", "Bruno", 55_300L, 35, 1),
+            new SeedScore("Carla", "Carla", 61_200L, 40, 2),
+            new SeedScore("Diego", "Diego", 49_800L, 31, 1),
+            new SeedScore("Elena", "Elena", 72_400L, 45, 2)
+    };
+
+    private static class SeedScore {
+        final String nickname;
+        final String player;
+        final long durationMillis;
+        final long moveCount;
+        final int level;
+
+        SeedScore(String nickname, String player, long durationMillis, long moveCount, int level) {
+            this.nickname = nickname;
+            this.player = player;
+            this.durationMillis = durationMillis;
+            this.moveCount = moveCount;
+            this.level = level;
+        }
     }
 
     public long upsertScore(String nickname, long totalDurationMillis, long totalMoves, int levelReached) {
@@ -223,11 +278,14 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
     }
 
     public List<ScoreEntry> searchScores(String query) {
-        if (query == null || query.trim().isEmpty()) {
+        String normalizedQuery = query == null ? "" : query.trim();
+        if (normalizedQuery.isEmpty()) {
             return getAllScores();
         }
-        String selection = COLUMN_NICKNAME + " LIKE ?";
-        String[] selectionArgs = new String[]{"%" + query.trim() + "%"};
+        String likeExpression = "%" + normalizedQuery + "%";
+        String selection = "(" + COLUMN_NICKNAME + " LIKE ? COLLATE NOCASE OR "
+                + COLUMN_PLAYER + " LIKE ? COLLATE NOCASE)";
+        String[] selectionArgs = new String[]{likeExpression, likeExpression};
         return queryScores(selection, selectionArgs);
     }
 

@@ -593,10 +593,20 @@ public class MainActivity extends AppCompatActivity {
             if (tileIndex == blankTileIndex) {
                 tileView.setText("");
             } else {
-                tileView.setText(String.valueOf(tileIndex + 1));
+                tileView.setText(getTileLabel(tileIndex));
             }
             tileView.setBackgroundResource(R.drawable.bg_tile);
         }
+    }
+
+    private String getTileLabel(int tileIndex) {
+        if (tileIndex < 0) {
+            return "";
+        }
+        if (tileIndex < 26) {
+            return String.valueOf((char) ('A' + tileIndex));
+        }
+        return String.valueOf(tileIndex - 25);
     }
 
     private List<Integer> generateSolvableBoard() {
