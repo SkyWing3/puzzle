@@ -34,4 +34,10 @@
     <string name="ranking_empty">Aún no hay tiempos guardados. ¡Sé el primero!</string>
     <string name="ranking_time_label">%1$s</string>
     <string name="ranking_date_label">Registrado el %1$s</string>
+    <string name="auto_solve">Resolver automáticamente</string>
+    <string name="status_solving">Buscando la solución óptima…</string>
+    <string name="status_auto_solved">Rompecabezas resuelto automáticamente.</string>
+    <string name="status_auto_solve_failed">No se pudo resolver el rompecabezas de forma automática.</string>
+    <string name="status_already_solved">El rompecabezas ya está resuelto.</string>
+    <string name="auto_solve_in_progress">La resolución automática ya está en curso.</string>
 </resources>

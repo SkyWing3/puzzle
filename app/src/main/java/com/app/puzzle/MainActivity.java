@@ -36,6 +36,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.app.puzzle.data.ScoreDatabaseHelper;
+import com.app.puzzle.solver.PuzzleSolver;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
@@ -68,6 +69,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView statusMessageView;
     private ImageView referenceImageView;
     private MaterialCardView referenceCard;
+    private MaterialButton pickImageButton;
+    private MaterialButton captureImageButton;
+    private MaterialButton shuffleButton;
+    private MaterialButton autoSolveButton;
     private View rootView;
     private int moveCounter = 0;
     private boolean imageMode = false;
@@ -78,8 +83,12 @@ public class MainActivity extends AppCompatActivity {
     private ActivityResultLauncher<String> cameraPermissionLauncher;
 
     private final Handler timerHandler = new Handler(Looper.getMainLooper());
+    private final Handler autoSolveHandler = new Handler(Looper.getMainLooper());
     private long startTimeMillis = 0L;
     private boolean timerRunning = false;
+    private boolean autoSolving = false;
+    private List<Integer> pendingAutoSolveMoves;
+    private int autoSolveStepIndex = 0;
 
     private final Runnable timerRunnable = new Runnable() {
         @Override
@@ -95,7 +104,38 @@ public class MainActivity extends AppCompatActivity {
 
     private ScoreDatabaseHelper databaseHelper;
 
+    private final Runnable autoSolveRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!autoSolving || pendingAutoSolveMoves == null) {
+                return;
+            }
+            if (autoSolveStepIndex >= pendingAutoSolveMoves.size()) {
+                finishAutoSolveSuccess();
+                return;
+            }
+            int fromIndex = pendingAutoSolveMoves.get(autoSolveStepIndex);
+            int blankIndex = currentBoard.indexOf(BLANK_TILE_INDEX);
+            if (blankIndex == -1 || !isAdjacent(fromIndex, blankIndex)) {
+                finishAutoSolveFailure();
+                return;
+            }
+            swapTiles(fromIndex, blankIndex);
+            moveCounter++;
+            updateMoveCounter();
+            autoSolveStepIndex++;
+            if (autoSolveStepIndex >= pendingAutoSolveMoves.size()) {
+                finishAutoSolveSuccess();
+            } else {
+                autoSolveHandler.postDelayed(this, 250);
+            }
+        }
+    };
+
     private final View.OnTouchListener touchListener = (v, event) -> {
+        if (autoSolving) {
+            return false;
+        }
         if (event.getAction() != MotionEvent.ACTION_DOWN) {
             return false;
         }
@@ -115,6 +155,9 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private final View.OnDragListener dragListener = (v, event) -> {
+        if (autoSolving) {
+            return false;
+        }
         switch (event.getAction()) {
             case DragEvent.ACTION_DRAG_STARTED:
                 return true;
@@ -187,15 +230,17 @@ public class MainActivity extends AppCompatActivity {
         statusMessageView = findViewById(R.id.statusMessage);
         referenceCard = findViewById(R.id.referenceCard);
         referenceImageView = findViewById(R.id.referenceImage);
-        MaterialButton pickImageButton = findViewById(R.id.pickImageButton);
-        MaterialButton captureImageButton = findViewById(R.id.captureImageButton);
+        pickImageButton = findViewById(R.id.pickImageButton);
+        captureImageButton = findViewById(R.id.captureImageButton);
+        shuffleButton = findViewById(R.id.shuffleButton);
+        autoSolveButton = findViewById(R.id.autoSolveButton);
 
         databaseHelper = new ScoreDatabaseHelper(this);
 
         prepareTiles();
 
-        View shuffleButton = findViewById(R.id.shuffleButton);
         shuffleButton.setOnClickListener(v -> resetBoard());
+        autoSolveButton.setOnClickListener(v -> startAutoSolve());
 
         pickImageButton.setOnClickListener(v -> launchImagePicker());
         captureImageButton.setOnClickListener(v -> launchCamera());
@@ -219,6 +264,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void resetBoard() {
+        cancelAutoSolveIfRunning();
         List<Integer> board = generateSolvableBoard();
         applyBoard(board);
         moveCounter = 0;
@@ -227,6 +273,10 @@ public class MainActivity extends AppCompatActivity {
         startNewTimer();
         statusMessageView.setText(imageMode ? R.string.status_ready_image : R.string.status_ready);
         referenceCard.setVisibility(imageMode ? View.VISIBLE : View.GONE);
+        if (autoSolveButton != null) {
+            autoSolveButton.setEnabled(true);
+        }
+        setInteractionControlsEnabled(true);
     }
 
     private void handleSuccessfulMove() {
@@ -443,6 +493,95 @@ public class MainActivity extends AppCompatActivity {
         );
     }
 
+    private void startAutoSolve() {
+        if (autoSolving) {
+            Snackbar.make(rootView, R.string.auto_solve_in_progress, Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+        if (isSolved(currentBoard)) {
+            statusMessageView.setText(R.string.status_already_solved);
+            return;
+        }
+        statusMessageView.setText(R.string.status_solving);
+        autoSolving = true;
+        if (autoSolveButton != null) {
+            autoSolveButton.setEnabled(false);
+        }
+        setInteractionControlsEnabled(false);
+        List<Integer> boardSnapshot = new ArrayList<>(currentBoard);
+        new Thread(() -> {
+            List<Integer> solutionMoves = PuzzleSolver.solve(boardSnapshot, GRID_SIZE);
+            runOnUiThread(() -> handleAutoSolveResult(solutionMoves));
+        }).start();
+    }
+
+    private void handleAutoSolveResult(List<Integer> solutionMoves) {
+        if (!autoSolving) {
+            return;
+        }
+        if (solutionMoves == null || solutionMoves.isEmpty()) {
+            finishAutoSolveFailure();
+            return;
+        }
+        pendingAutoSolveMoves = solutionMoves;
+        autoSolveStepIndex = 0;
+        autoSolveHandler.post(autoSolveRunnable);
+    }
+
+    private void finishAutoSolveSuccess() {
+        autoSolveHandler.removeCallbacks(autoSolveRunnable);
+        autoSolving = false;
+        pendingAutoSolveMoves = null;
+        autoSolveStepIndex = 0;
+        puzzleSolved = true;
+        stopTimer();
+        statusMessageView.setText(R.string.status_auto_solved);
+        if (autoSolveButton != null) {
+            autoSolveButton.setEnabled(true);
+        }
+        setInteractionControlsEnabled(true);
+        updateTilesAppearance();
+    }
+
+    private void finishAutoSolveFailure() {
+        autoSolveHandler.removeCallbacks(autoSolveRunnable);
+        autoSolving = false;
+        pendingAutoSolveMoves = null;
+        autoSolveStepIndex = 0;
+        if (autoSolveButton != null) {
+            autoSolveButton.setEnabled(true);
+        }
+        setInteractionControlsEnabled(true);
+        statusMessageView.setText(R.string.status_auto_solve_failed);
+        Snackbar.make(rootView, R.string.status_auto_solve_failed, Snackbar.LENGTH_SHORT).show();
+    }
+
+    private void cancelAutoSolveIfRunning() {
+        if (!autoSolving) {
+            return;
+        }
+        autoSolveHandler.removeCallbacks(autoSolveRunnable);
+        autoSolving = false;
+        pendingAutoSolveMoves = null;
+        autoSolveStepIndex = 0;
+        if (autoSolveButton != null) {
+            autoSolveButton.setEnabled(true);
+        }
+        setInteractionControlsEnabled(true);
+    }
+
+    private void setInteractionControlsEnabled(boolean enabled) {
+        if (shuffleButton != null) {
+            shuffleButton.setEnabled(enabled);
+        }
+        if (pickImageButton != null) {
+            pickImageButton.setEnabled(enabled);
+        }
+        if (captureImageButton != null) {
+            captureImageButton.setEnabled(enabled);
+        }
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
@@ -496,6 +635,7 @@ public class MainActivity extends AppCompatActivity {
             Snackbar.make(rootView, R.string.error_loading_image, Snackbar.LENGTH_SHORT).show();
             return;
         }
+        cancelAutoSolveIfRunning();
         Bitmap preparedBitmap = prepareBitmap(bitmap);
         sliceBitmapIntoTiles(preparedBitmap);
         referenceImageView.setImageBitmap(preparedBitmap);
@@ -563,5 +703,6 @@ public class MainActivity extends AppCompatActivity {
         }
         releaseCurrentImageTiles();
         currentImageTiles.clear();
+        autoSolveHandler.removeCallbacksAndMessages(null);
     }
 }
