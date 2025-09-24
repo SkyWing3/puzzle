@@ -1,6 +1,7 @@
 <resources>
     <dimen name="screen_margin">24dp</dimen>
     <dimen name="spacing_small">8dp</dimen>
+    <dimen name="spacing_medium">12dp</dimen>
     <dimen name="spacing_large">16dp</dimen>
     <dimen name="spacing_extra_large">24dp</dimen>
     <dimen name="board_corner_radius">28dp</dimen>

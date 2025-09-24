@@ -145,6 +145,69 @@
             android:textAlignment="center" />
     </LinearLayout>
 
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/referenceCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/screen_margin"
+        android:layout_marginTop="@dimen/spacing_large"
+        android:layout_marginEnd="@dimen/screen_margin"
+        android:visibility="gone"
+        app:cardBackgroundColor="@color/board_background"
+        app:cardCornerRadius="@dimen/board_corner_radius"
+        app:cardElevation="@dimen/board_elevation"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/statusContainer">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/board_inner_padding">
+
+            <ImageView
+                android:id="@+id/referenceImage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:contentDescription="@string/reference_image_description"
+                android:scaleType="centerCrop"
+                tools:src="@drawable/bg_tile" />
+
+        </FrameLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <LinearLayout
+        android:id="@+id/imageActions"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/screen_margin"
+        android:layout_marginTop="@dimen/spacing_large"
+        android:layout_marginEnd="@dimen/screen_margin"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/referenceCard">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/pickImageButton"
+            style="@style/Widget.Puzzle.SecondaryButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/spacing_medium"
+            android:layout_weight="1"
+            android:text="@string/pick_image" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/captureImageButton"
+            style="@style/Widget.Puzzle.SecondaryButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/capture_image" />
+    </LinearLayout>
+
     <com.google.android.material.button.MaterialButton
         android:id="@+id/shuffleButton"
         style="@style/Widget.Puzzle.PrimaryButton"
@@ -161,6 +224,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/statusContainer" />
+        app:layout_constraintTop_toBottomOf="@id/imageActions" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
