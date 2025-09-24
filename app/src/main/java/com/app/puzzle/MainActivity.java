@@ -364,6 +364,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handlePuzzleCompletion(long elapsedMillis) {
+        handlePuzzleCompletion(elapsedMillis, false);
+    }
+
+    private void handlePuzzleCompletion(long elapsedMillis, boolean autoSolved) {
         final long newTotal = accumulatedDurationMillis + elapsedMillis;
         if (savedNickname == null || savedNickname.trim().isEmpty()) {
             showNicknameDialog(elapsedMillis, nickname -> {
@@ -376,7 +380,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     Snackbar.make(rootView, R.string.score_saved, Snackbar.LENGTH_SHORT).show();
                 }
-                showLevelCompleteDialog(elapsedMillis, accumulatedDurationMillis);
+                showCompletionDialog(autoSolved, elapsedMillis, accumulatedDurationMillis);
             });
         } else {
             accumulatedDurationMillis = newTotal;
@@ -387,7 +391,15 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 Snackbar.make(rootView, R.string.score_updated, Snackbar.LENGTH_SHORT).show();
             }
-            showLevelCompleteDialog(elapsedMillis, accumulatedDurationMillis);
+            showCompletionDialog(autoSolved, elapsedMillis, accumulatedDurationMillis);
+        }
+    }
+
+    private void showCompletionDialog(boolean autoSolved, long levelDurationMillis, long totalDurationMillis) {
+        if (autoSolved) {
+            showAutoSolveAdvanceDialog(levelDurationMillis, totalDurationMillis);
+        } else {
+            showLevelCompleteDialog(levelDurationMillis, totalDurationMillis);
         }
     }
 
@@ -405,10 +417,12 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void showAutoSolveAdvanceDialog() {
+    private void showAutoSolveAdvanceDialog(long levelDurationMillis, long totalDurationMillis) {
+        String levelTime = formatDuration(levelDurationMillis);
+        String totalTime = formatDuration(totalDurationMillis);
         new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.dialog_title_auto_solve_complete)
-                .setMessage(R.string.dialog_message_auto_solve_complete)
+                .setMessage(getString(R.string.dialog_message_auto_solve_complete, levelTime, totalTime))
                 .setPositiveButton(R.string.action_next_level, (dialog, which) -> {
                     dialog.dismiss();
                     advanceToNextLevel();
@@ -712,14 +726,14 @@ public class MainActivity extends AppCompatActivity {
         pendingAutoSolveMoves = null;
         autoSolveStepIndex = 0;
         puzzleSolved = true;
-        stopTimer();
+        long elapsed = stopTimer();
         statusMessageView.setText(R.string.status_auto_solved);
         if (autoSolveButton != null) {
             autoSolveButton.setEnabled(true);
         }
         setInteractionControlsEnabled(true);
         updateTilesAppearance();
-        showAutoSolveAdvanceDialog();
+        handlePuzzleCompletion(elapsed, true);
     }
 
     private void finishAutoSolveFailure() {
