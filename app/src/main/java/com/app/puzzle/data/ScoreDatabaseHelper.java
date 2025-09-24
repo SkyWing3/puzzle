@@ -12,7 +12,7 @@ import java.util.List;
 public class ScoreDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "puzzle_scores.db";
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 4;
 
     public static final String TABLE_SCORES = "scores";
     public static final String COLUMN_ID = "_id";
@@ -48,6 +48,9 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 3) {
             addColumnIfMissing(db, COLUMN_LEVEL, "INTEGER NOT NULL DEFAULT 1");
         }
+        if (oldVersion < 4) {
+            addColumnIfMissing(db, COLUMN_NICKNAME, "TEXT DEFAULT ''");
+        }
     }
 
     @Override
@@ -56,6 +59,7 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
         addColumnIfMissing(db, COLUMN_DURATION, "INTEGER NOT NULL DEFAULT 0");
         addColumnIfMissing(db, COLUMN_CREATED_AT, "INTEGER NOT NULL DEFAULT 0");
         addColumnIfMissing(db, COLUMN_LEVEL, "INTEGER NOT NULL DEFAULT 1");
+        addColumnIfMissing(db, COLUMN_NICKNAME, "TEXT DEFAULT ''");
     }
 
     private void addColumnIfMissing(SQLiteDatabase db, String columnName, String columnDefinition) {
