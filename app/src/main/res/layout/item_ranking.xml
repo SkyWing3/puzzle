@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/spacing_medium"
+    app:cardBackgroundColor="@color/board_background"
+    app:cardCornerRadius="@dimen/board_corner_radius"
+    app:cardElevation="@dimen/board_elevation">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="@dimen/board_inner_padding">
+
+        <TextView
+            android:id="@+id/positionView"
+            style="@style/Widget.Puzzle.Counter"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:text="1"
+            android:textAlignment="center"
+            android:textSize="20sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_medium"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/nicknameView"
+                style="@style/Widget.Puzzle.Body"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/tile_text"
+                android:textStyle="bold"
+                android:text="Jugador" />
+
+            <TextView
+                android:id="@+id/timeView"
+                style="@style/Widget.Puzzle.Status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/tile_text"
+                android:text="00:45" />
+
+            <TextView
+                android:id="@+id/levelView"
+                style="@style/Widget.Puzzle.Status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/tile_text"
+                android:text="Nivel 1" />
+
+            <TextView
+                android:id="@+id/dateView"
+                style="@style/Widget.Puzzle.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/tile_text"
+                android:text="Registrado el 01/01/2024" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

@@ -5,64 +5,217 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg_app_gradient"
     tools:context=".MainActivity">
 
-    <GridLayout
-        android:id="@+id/puzzleGrid"
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/topAppBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/screen_margin"
+        android:layout_marginTop="@dimen/screen_margin"
+        android:layout_marginEnd="@dimen/screen_margin"
+        android:background="@android:color/transparent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:title="@string/toolbar_title"
+        app:titleCentered="true"
+        app:titleTextColor="@color/on_toolbar" />
+
+    <TextView
+        android:id="@+id/instructionsText"
+        style="@style/Widget.Puzzle.Body"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_large"
+        android:layout_marginStart="@dimen/screen_margin"
+        android:layout_marginEnd="@dimen/screen_margin"
+        android:gravity="center"
+        android:text="@string/puzzle_instructions"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topAppBar" />
+
+    <TextView
+        android:id="@+id/levelIndicator"
+        style="@style/Widget.Puzzle.Counter"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:rowCount="3"
-        android:columnCount="3"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginTop="@dimen/spacing_medium"
+        android:text="@string/level_indicator_placeholder"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/instructionsText" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/boardCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/screen_margin"
+        android:layout_marginTop="@dimen/spacing_extra_large"
+        android:layout_marginEnd="@dimen/screen_margin"
+        android:layout_marginBottom="@dimen/spacing_large"
+        app:cardBackgroundColor="@color/board_background"
+        app:cardCornerRadius="@dimen/board_corner_radius"
+        app:cardElevation="@dimen/board_elevation"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/levelIndicator">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="@dimen/board_inner_padding">
+
+            <GridLayout
+                android:id="@+id/puzzleGrid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:alignmentMode="alignMargins"
+                android:columnCount="3"
+                android:rowCount="3"
+                android:useDefaultMargins="false"
+                tools:itemCount="9"
+                tools:listitem="@layout/view_tile" />
+        </FrameLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <LinearLayout
+        android:id="@+id/statusContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/screen_margin"
+        android:layout_marginEnd="@dimen/screen_margin"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/boardCard">
 
         <TextView
-            android:id="@+id/tile0"
-            style="@style/Tile"
-            android:text="A" />
+            android:id="@+id/timeCounter"
+            style="@style/Widget.Puzzle.Counter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/time_counter_placeholder" />
 
         <TextView
-            android:id="@+id/tile1"
-            style="@style/Tile"
-            android:text="B" />
+            android:id="@+id/moveCounter"
+            style="@style/Widget.Puzzle.Counter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/move_counter_placeholder" />
 
         <TextView
-            android:id="@+id/tile2"
-            style="@style/Tile"
-            android:text="C" />
+            android:id="@+id/statusMessage"
+            style="@style/Widget.Puzzle.Status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_small"
+            android:text="@string/status_ready_level"
+            android:textAlignment="center" />
+    </LinearLayout>
 
-        <TextView
-            android:id="@+id/tile3"
-            style="@style/Tile"
-            android:text="D" />
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/referenceCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/screen_margin"
+        android:layout_marginTop="@dimen/spacing_large"
+        android:layout_marginEnd="@dimen/screen_margin"
+        android:visibility="gone"
+        app:cardBackgroundColor="@color/board_background"
+        app:cardCornerRadius="@dimen/board_corner_radius"
+        app:cardElevation="@dimen/board_elevation"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/statusContainer">
 
-        <TextView
-            android:id="@+id/tile4"
-            style="@style/Tile"
-            android:text="E" />
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/board_inner_padding">
 
-        <TextView
-            android:id="@+id/tile5"
-            style="@style/Tile"
-            android:text="F" />
+            <ImageView
+                android:id="@+id/referenceImage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:contentDescription="@string/reference_image_description"
+                android:scaleType="centerCrop"
+                tools:src="@drawable/bg_tile" />
 
-        <TextView
-            android:id="@+id/tile6"
-            style="@style/Tile"
-            android:text="G" />
+        </FrameLayout>
+    </com.google.android.material.card.MaterialCardView>
 
-        <TextView
-            android:id="@+id/tile7"
-            style="@style/Tile"
-            android:text="H" />
+    <LinearLayout
+        android:id="@+id/imageActions"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/screen_margin"
+        android:layout_marginTop="@dimen/spacing_large"
+        android:layout_marginEnd="@dimen/screen_margin"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/referenceCard">
 
-        <TextView
-            android:id="@+id/tile8"
-            style="@style/Tile"
-            android:text="" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/pickImageButton"
+            style="@style/Widget.Puzzle.SecondaryButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/spacing_medium"
+            android:layout_weight="1"
+            android:text="@string/pick_image" />
 
-    </GridLayout>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/captureImageButton"
+            style="@style/Widget.Puzzle.SecondaryButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/capture_image" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/bottomActions"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/screen_margin"
+        android:layout_marginTop="@dimen/spacing_large"
+        android:layout_marginEnd="@dimen/screen_margin"
+        android:layout_marginBottom="@dimen/screen_margin"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/imageActions">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/shuffleButton"
+            style="@style/Widget.Puzzle.PrimaryButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/spacing_medium"
+            android:layout_weight="1"
+            android:text="@string/shuffle"
+            app:icon="@drawable/ic_shuffle"
+            app:iconGravity="textStart"
+            app:iconPadding="@dimen/spacing_small" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/autoSolveButton"
+            style="@style/Widget.Puzzle.PrimaryButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/auto_solve" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

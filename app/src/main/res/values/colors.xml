@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="gradient_start">#FF0F2027</color>
+    <color name="gradient_center">#FF203A43</color>
+    <color name="gradient_end">#FF2C5364</color>
+    <color name="board_background">#F6F9FF</color>
+    <color name="tile_text">#FF2D3142</color>
+    <color name="tile_background">#FFFFFFFF</color>
+    <color name="tile_stroke">#332D3142</color>
+    <color name="body_text">#FFEAF0F6</color>
+    <color name="counter_text">#FFFFD166</color>
+    <color name="status_text">#FFECF0F6</color>
+    <color name="button_background">#FF5E60CE</color>
+    <color name="button_text">#FFFFFFFF</color>
+    <color name="on_toolbar">#FFEFF6FF</color>
+    <color name="toolbar_shadow">#33000000</color>
 </resources>
