@@ -23,6 +23,7 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_DURATION = "duration";
     public static final String COLUMN_MOVES = "moves";
     public static final String COLUMN_CREATED_AT = "created_at";
+    private static final String LEGACY_COLUMN_TIMESTAMP = "timestamp";
     public static final String COLUMN_LEVEL = "level";
 
     private static final String TEMP_TABLE_NAME = TABLE_SCORES + "_new";
@@ -91,13 +92,15 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
                     existingColumns.add(cursor.getString(nameIndex));
                 }
             }
+            boolean hasLegacyTimestamp = existingColumns.contains(LEGACY_COLUMN_TIMESTAMP);
             if (!existingColumns.contains(COLUMN_ID)
                     || !existingColumns.contains(COLUMN_NICKNAME)
                     || !existingColumns.contains(COLUMN_PLAYER)
                     || !existingColumns.contains(COLUMN_DURATION)
                     || !existingColumns.contains(COLUMN_MOVES)
                     || !existingColumns.contains(COLUMN_LEVEL)
-                    || !existingColumns.contains(COLUMN_CREATED_AT)) {
+                    || !existingColumns.contains(COLUMN_CREATED_AT)
+                    || hasLegacyTimestamp) {
                 rebuildScoresTable(db, existingColumns);
             }
         } finally {
@@ -157,6 +160,8 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
         String expression;
         if (existingColumns.contains(columnName)) {
             expression = columnName;
+        } else if (COLUMN_CREATED_AT.equals(columnName) && existingColumns.contains(LEGACY_COLUMN_TIMESTAMP)) {
+            expression = LEGACY_COLUMN_TIMESTAMP;
         } else if (COLUMN_PLAYER.equals(columnName) && existingColumns.contains(COLUMN_NICKNAME)) {
             expression = COLUMN_NICKNAME;
         } else if (COLUMN_NICKNAME.equals(columnName) && existingColumns.contains(COLUMN_PLAYER)) {
