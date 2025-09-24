@@ -263,6 +263,14 @@ public class MainActivity extends AppCompatActivity {
         loadPlayerProgress();
         configureForCurrentLevel();
 
+        if (boardCard != null) {
+            boardCard.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                if ((right - left) != (oldRight - oldLeft)) {
+                    scheduleTileSizeUpdate();
+                }
+            });
+        }
+
         shuffleButton.setOnClickListener(v -> restartProgress());
         autoSolveButton.setOnClickListener(v -> startAutoSolve());
 
@@ -1071,10 +1079,14 @@ public class MainActivity extends AppCompatActivity {
                     - boardCard.getContentPaddingLeft()
                     - boardCard.getContentPaddingRight();
         }
-        if (width <= 0 && puzzleGrid != null) {
-            View parent = (View) puzzleGrid.getParent();
-            if (parent != null) {
-                width = parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight();
+        View parent = null;
+        if (puzzleGrid != null) {
+            parent = (View) puzzleGrid.getParent();
+        }
+        if (parent != null) {
+            int parentWidth = parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight();
+            if (parentWidth > 0 && (width <= 0 || parentWidth < width)) {
+                width = parentWidth;
             }
         }
         if (width <= 0 && puzzleGrid != null) {
@@ -1092,9 +1104,8 @@ public class MainActivity extends AppCompatActivity {
 
     private int getDesiredTileSizePx() {
         int availableWidth = computeAvailableBoardWidth();
-        int baseSize = getResources().getDimensionPixelSize(R.dimen.tile_size);
         if (availableWidth <= 0 || currentGridSize <= 0) {
-            return baseSize;
+            return 0;
         }
         int spacing = getResources().getDimensionPixelSize(R.dimen.tile_spacing);
         int totalSpacing = spacing * 2 * currentGridSize;
