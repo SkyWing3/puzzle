@@ -12,11 +12,12 @@ import java.util.List;
 public class ScoreDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "puzzle_scores.db";
-    private static final int DATABASE_VERSION = 4;
+    private static final int DATABASE_VERSION = 5;
 
     public static final String TABLE_SCORES = "scores";
     public static final String COLUMN_ID = "_id";
     public static final String COLUMN_NICKNAME = "nickname";
+    public static final String COLUMN_PLAYER = "player";
     public static final String COLUMN_DURATION = "duration";
     public static final String COLUMN_CREATED_AT = "created_at";
     public static final String COLUMN_LEVEL = "level";
@@ -25,6 +26,7 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
             "CREATE TABLE " + TABLE_SCORES + " ("
                     + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                     + COLUMN_NICKNAME + " TEXT NOT NULL,"
+                    + COLUMN_PLAYER + " TEXT NOT NULL,"
                     + COLUMN_DURATION + " INTEGER NOT NULL,"
                     + COLUMN_LEVEL + " INTEGER NOT NULL,"
                     + COLUMN_CREATED_AT + " INTEGER NOT NULL"
@@ -50,6 +52,11 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
         }
         if (oldVersion < 4) {
             addColumnIfMissing(db, COLUMN_NICKNAME, "TEXT DEFAULT ''");
+            copyColumnIfExists(db, "player", COLUMN_NICKNAME);
+        }
+        if (oldVersion < 5) {
+            addColumnIfMissing(db, COLUMN_PLAYER, "TEXT NOT NULL DEFAULT ''");
+            copyColumnIfExists(db, COLUMN_NICKNAME, COLUMN_PLAYER);
         }
     }
 
@@ -60,11 +67,19 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
         addColumnIfMissing(db, COLUMN_CREATED_AT, "INTEGER NOT NULL DEFAULT 0");
         addColumnIfMissing(db, COLUMN_LEVEL, "INTEGER NOT NULL DEFAULT 1");
         addColumnIfMissing(db, COLUMN_NICKNAME, "TEXT DEFAULT ''");
+        addColumnIfMissing(db, COLUMN_PLAYER, "TEXT NOT NULL DEFAULT ''");
     }
 
     private void addColumnIfMissing(SQLiteDatabase db, String columnName, String columnDefinition) {
         if (!columnExists(db, TABLE_SCORES, columnName)) {
             db.execSQL("ALTER TABLE " + TABLE_SCORES + " ADD COLUMN " + columnName + " " + columnDefinition);
+        }
+    }
+
+    private void copyColumnIfExists(SQLiteDatabase db, String sourceColumn, String destinationColumn) {
+        if (columnExists(db, TABLE_SCORES, sourceColumn) && columnExists(db, TABLE_SCORES, destinationColumn)) {
+            db.execSQL("UPDATE " + TABLE_SCORES + " SET " + destinationColumn + " = " + sourceColumn
+                    + " WHERE " + destinationColumn + " IS NULL OR TRIM(" + destinationColumn + ") = ''");
         }
     }
 
@@ -94,12 +109,14 @@ public class ScoreDatabaseHelper extends SQLiteOpenHelper {
         if (existing == null) {
             ContentValues values = new ContentValues();
             values.put(COLUMN_NICKNAME, nickname);
+            values.put(COLUMN_PLAYER, nickname);
             values.put(COLUMN_DURATION, totalDurationMillis);
             values.put(COLUMN_LEVEL, levelReached);
             values.put(COLUMN_CREATED_AT, now);
             return db.insert(TABLE_SCORES, null, values);
         } else {
             ContentValues values = new ContentValues();
+            values.put(COLUMN_PLAYER, nickname);
             values.put(COLUMN_DURATION, totalDurationMillis);
             values.put(COLUMN_LEVEL, levelReached);
             int updated = db.update(
