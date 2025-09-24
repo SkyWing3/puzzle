@@ -54,4 +54,30 @@
         <item name="android:paddingTop">@dimen/button_padding_vertical</item>
         <item name="android:paddingBottom">@dimen/button_padding_vertical</item>
     </style>
+
+    <style name="Widget.Puzzle.Headline" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:textColor">@color/body_text</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="Widget.Puzzle.LevelPill" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textColor">@color/button_text</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:background">@drawable/bg_level_indicator</item>
+        <item name="android:paddingStart">@dimen/chip_padding_horizontal</item>
+        <item name="android:paddingEnd">@dimen/chip_padding_horizontal</item>
+        <item name="android:paddingTop">@dimen/chip_padding_vertical</item>
+        <item name="android:paddingBottom">@dimen/chip_padding_vertical</item>
+    </style>
+
+    <style name="Widget.Puzzle.StatValue" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">@color/tile_text</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="Widget.Puzzle.StatLabel" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textColor">@color/status_text</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
 </resources>
