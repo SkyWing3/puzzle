@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_LEVEL = "progress_level";
     private static final String KEY_NICKNAME = "progress_nickname";
     private static final String KEY_TOTAL_DURATION = "progress_total_duration";
+    private static final String KEY_TOTAL_MOVES = "progress_total_moves";
 
     private final List<TextView> tiles = new ArrayList<>();
     private final List<Integer> currentBoard = new ArrayList<>();
@@ -85,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
     private int tileCount = currentGridSize * currentGridSize;
     private int blankTileIndex = tileCount - 1;
     private long accumulatedDurationMillis = 0L;
+    private long accumulatedMoveCount = 0L;
     private String savedNickname;
 
     private ActivityResultLauncher<PickVisualMediaRequest> pickImageLauncher;
@@ -282,6 +284,7 @@ public class MainActivity extends AppCompatActivity {
         }
         currentLevel = Math.max(1, preferences.getInt(KEY_LEVEL, 1));
         accumulatedDurationMillis = preferences.getLong(KEY_TOTAL_DURATION, 0L);
+        accumulatedMoveCount = preferences.getLong(KEY_TOTAL_MOVES, 0L);
         savedNickname = preferences.getString(KEY_NICKNAME, null);
         if (savedNickname != null) {
             savedNickname = savedNickname.trim();
@@ -336,6 +339,7 @@ public class MainActivity extends AppCompatActivity {
         releaseImageResources();
         currentLevel = 1;
         accumulatedDurationMillis = 0L;
+        accumulatedMoveCount = 0L;
         persistProgress();
         configureForCurrentLevel();
         resetBoard();
@@ -385,30 +389,38 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handlePuzzleCompletion(long elapsedMillis, boolean autoSolved) {
-        final long newTotal = accumulatedDurationMillis + elapsedMillis;
+        final long prospectiveDuration = accumulatedDurationMillis + elapsedMillis;
+        final long prospectiveMoves = accumulatedMoveCount + moveCounter;
+        if (autoSolved) {
+            showCompletionDialog(true, elapsedMillis, prospectiveDuration);
+            Snackbar.make(rootView, R.string.auto_solve_not_ranked, Snackbar.LENGTH_SHORT).show();
+            return;
+        }
         if (savedNickname == null || savedNickname.trim().isEmpty()) {
             showNicknameDialog(elapsedMillis, nickname -> {
                 savedNickname = nickname;
-                accumulatedDurationMillis = newTotal;
+                accumulatedDurationMillis = prospectiveDuration;
+                accumulatedMoveCount = prospectiveMoves;
                 persistProgress();
-                long result = databaseHelper.upsertScore(savedNickname, accumulatedDurationMillis, currentLevel);
+                long result = databaseHelper.upsertScore(savedNickname, accumulatedDurationMillis, accumulatedMoveCount, currentLevel);
                 if (result == -1) {
                     Snackbar.make(rootView, R.string.error_saving_score, Snackbar.LENGTH_SHORT).show();
                 } else {
                     Snackbar.make(rootView, R.string.score_saved, Snackbar.LENGTH_SHORT).show();
                 }
-                showCompletionDialog(autoSolved, elapsedMillis, accumulatedDurationMillis);
+                showCompletionDialog(false, elapsedMillis, accumulatedDurationMillis);
             });
         } else {
-            accumulatedDurationMillis = newTotal;
+            accumulatedDurationMillis = prospectiveDuration;
+            accumulatedMoveCount = prospectiveMoves;
             persistProgress();
-            long result = databaseHelper.upsertScore(savedNickname, accumulatedDurationMillis, currentLevel);
+            long result = databaseHelper.upsertScore(savedNickname, accumulatedDurationMillis, accumulatedMoveCount, currentLevel);
             if (result == -1) {
                 Snackbar.make(rootView, R.string.error_saving_score, Snackbar.LENGTH_SHORT).show();
             } else {
                 Snackbar.make(rootView, R.string.score_updated, Snackbar.LENGTH_SHORT).show();
             }
-            showCompletionDialog(autoSolved, elapsedMillis, accumulatedDurationMillis);
+            showCompletionDialog(false, elapsedMillis, accumulatedDurationMillis);
         }
     }
 
@@ -467,6 +479,7 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt(KEY_LEVEL, currentLevel);
         editor.putLong(KEY_TOTAL_DURATION, accumulatedDurationMillis);
+        editor.putLong(KEY_TOTAL_MOVES, accumulatedMoveCount);
         if (savedNickname != null) {
             editor.putString(KEY_NICKNAME, savedNickname);
         }
