@@ -25,4 +25,19 @@
     <color name="decor_paw_light">#FFFF8AC1</color>
     <color name="decor_paw_dark">#FFE9559B</color>
     <color name="sparkle_accent">#FFFFAACF</color>
+    <color name="button_primary_start">#FF5E3FCF</color>
+    <color name="button_primary_end">#FF9B52E6</color>
+    <color name="button_primary_pressed_start">#FF4F32BE</color>
+    <color name="button_primary_pressed_end">#FF883FD2</color>
+    <color name="button_primary_stroke">#80FFFFFF</color>
+    <color name="button_primary_disabled">#26FFFFFF</color>
+    <color name="button_secondary_fill">#26FFFFFF</color>
+    <color name="button_secondary_pressed_fill">#40FFFFFF</color>
+    <color name="button_secondary_stroke">#80A965E9</color>
+    <color name="button_secondary_disabled_fill">#10FFFFFF</color>
+    <color name="button_secondary_disabled_stroke">#26FFFFFF</color>
+    <color name="button_secondary_text_base">#FFF7E8FF</color>
+    <color name="button_secondary_text_disabled">#66F7E8FF</color>
+    <color name="button_text_disabled">#80FFFFFF</color>
+    <color name="button_ripple">#59FFFFFF</color>
 </resources>
