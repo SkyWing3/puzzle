@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">puzzle</string>
+    <string name="select_image">Agregar imagen</string>
+    <string name="remove_image">Quitar imagen</string>
+    <string name="ranking_button">Ranking</string>
+    <string name="ranking_title">Ranking de Movimientos</string>
+    <string name="ranking_empty">Aún no hay registros. ¡Resuelve el puzzle para aparecer aquí!</string>
+    <string name="moves_format">%1$d movimientos</string>
+    <string name="auto_solve_button">Solucionar</string>
+    <string name="already_solved">El rompecabezas ya está resuelto.</string>
+    <string name="unsolvable_puzzle">Esta combinación no es resolvible.</string>
+    <string name="solution_not_found">No se pudo generar la solución automáticamente.</string>
+    <string name="save_score_title">¡Puzzle resuelto!</string>
+    <string name="save_score_message">Ingresa tu nombre para guardar tu puntaje</string>
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="default_player_name">Jugador</string>
 </resources>
